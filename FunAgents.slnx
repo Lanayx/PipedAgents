@@ -1,0 +1,8 @@
+<Solution>
+  <Folder Name="/examples/">
+    <Project Path="examples/HelloWorld/HelloWorld.fsproj" />
+  </Folder>
+  <Folder Name="/src/">
+    <Project Path="src/FunAgents.MicrosoftAgentFramework/FunAgents.MicrosoftAgentFramework.fsproj" />
+  </Folder>
+</Solution>
