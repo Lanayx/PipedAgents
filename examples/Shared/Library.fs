@@ -1,5 +1,5 @@
-[<AutoOpen>]
-module HelloWorld.Tools
+﻿[<AutoOpen>]
+module Shared.Logging
 
 open System
 open System.Net.Http

@@ -1,8 +1,11 @@
 <Solution>
   <Folder Name="/examples/">
-    <Project Path="examples/HelloWorld/HelloWorld.fsproj" />
+    <Project Path="examples/Agent_Step01_Running/Agent_Step01_Running.fsproj" />
+    <Project Path="examples/Agent_Step02_MultiturnConversation/Agent_Step02_MultiturnConversation.fsproj" />
+    <Project Path="examples/Shared/Shared.fsproj" />
   </Folder>
   <Folder Name="/src/">
-    <Project Path="src/FunAgents.MicrosoftAgentFramework/FunAgents.MicrosoftAgentFramework.fsproj" />
+    <Project Path="src/FunAgents.MAF.OpenAI/FunAgents.MAF.OpenAI.fsproj" />
+    <Project Path="src/FunAgents.MAF/FunAgents.MAF.fsproj" />
   </Folder>
 </Solution>
