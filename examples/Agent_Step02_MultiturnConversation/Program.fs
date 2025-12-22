@@ -3,11 +3,13 @@
 open System
 open System.ClientModel
 open System.ClientModel.Primitives
+open FunAgents.MAF
 open Microsoft.Agents.AI
 open Microsoft.Extensions.AI
 open Shared
 open OpenAI.Responses
 open FunAgents.MAF.OpenAI
+open FSharp.Control
 
 module BaseLine =
 
@@ -44,14 +46,19 @@ module Target =
 
     let run() =
         let client = Client.ForResponsesAPI(Environment.GetEnvironmentVariable "MODEL_ID")
-        let agent = client.CreateAIAgent(
-            instructions = "You are good at telling jokes.",
-            name = "Joker")
-        let enumerator = agent.RunStreamingAsync("Tell me a joke about a pirate.").GetAsyncEnumerator()
+        let agent = client.CreateAIAgent(ChatClientAgentOptions(
+            Name = "Joker",
+            ChatOptions = ChatOptions(
+                Instructions = "You are good at telling jokes.",
+                RawRepresentationFactory = fun _ -> CreateResponseOptions(StoredOutputEnabled = false)
+            )
+        ))
+        let run = agent.GetStreamingThreadRun()
         task {
-            while! enumerator.MoveNextAsync() do
-                enumerator.Current |> string |> printf "%s"
+            do! "Tell me a joke about a pirate." |> run |> TaskSeq.iter (string >> printf "%s")
+            printfn ""
+            do! "Now tell the same joke for a kid" |> run |> TaskSeq.iter (string >> printf "%s")
         }
-        |> _.GetAwaiter().GetResult()
+        |> _.Wait()
 
-BaseLine.run()
+Target.run()
