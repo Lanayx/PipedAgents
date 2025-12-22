@@ -55,9 +55,9 @@ module Target =
         ))
         let run = agent.GetStreamingThreadRun()
         task {
-            do! "Tell me a joke about a pirate." |> run |> TaskSeq.iter (string >> printf "%s")
+            do! "Tell me a joke about a pirate." |> run |> TaskSeq.iter (printf "%O")
             printfn ""
-            do! "Now tell the same joke for a kid" |> run |> TaskSeq.iter (string >> printf "%s")
+            do! "Now tell the same joke for a kid" |> run |> TaskSeq.iter (printf "%O")
         }
         |> _.Wait()
 
