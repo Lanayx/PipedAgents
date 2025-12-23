@@ -3,6 +3,7 @@
     <Project Path="examples/Agent_Step01_Running/Agent_Step01_Running.fsproj" />
     <Project Path="examples/Agent_Step02_MultiturnConversation/Agent_Step02_MultiturnConversation.fsproj" />
     <Project Path="examples/Agent_Step03_UsingFunctionTools/Agent_Step03_UsingFunctionTools.fsproj" />
+    <Project Path="examples/Agent_Step04_HumanApproval/Agent_Step04_HumanApproval.fsproj" />
     <Project Path="examples/Shared/Shared.fsproj" />
   </Folder>
   <Folder Name="/src/">

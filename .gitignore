@@ -406,6 +406,7 @@ FodyWeavers.xsd
 
 # Local History for Visual Studio Code
 .history/
+.serena/
 
 # Built Visual Studio Code Extensions
 *.vsix
