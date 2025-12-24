@@ -53,7 +53,7 @@ module Target =
                 RawRepresentationFactory = fun _ -> CreateResponseOptions(StoredOutputEnabled = false)
             )
         ))
-        let run = agent.GetStreamingThreadRun()
+        let run = agent.GetStreamingSendThreadMessage()
         task {
             do! "Tell me a joke about a pirate." |> run |> TaskSeq.iter (printf "%O")
             printfn ""

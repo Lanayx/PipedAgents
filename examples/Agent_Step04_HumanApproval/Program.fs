@@ -30,7 +30,6 @@ module Baseline =
         let agent =
             responseClient.CreateAIAgent(
                 ChatClientAgentOptions(
-                    Name = "Helper",
                     ChatOptions =
                         ChatOptions(
                             Instructions = "You are a helpful assistant",
@@ -66,8 +65,46 @@ module Baseline =
 
 
 module Target =
+    open FunAgents.MAF.OpenAI
+    open FunAgents.MAF
+
+    [<Description("Get the weather for a given location.")>]
+    let getWeather ([<Description("The location to get the weather for.")>] location: string) : string =
+        $"The weather in {location} is cloudy with a high of 15°C."
 
     let run () =
-        ()
+        let client = Client.ForResponsesAPI(Environment.GetEnvironmentVariable "MODEL_ID")
+        let agent = client.CreateChatAgent(
+            ChatAgentOptions(
+                Instructions = "You are a helpful assistant",
+                Tools = [| getWeather |> AiTool.Get |> ApprovalRequiredAIFunction |],
+                CreateResponseOptions = (fun _ -> CreateResponseOptions(StoredOutputEnabled = false))
+            )
+        )
+        let threadId = agent.GetNewThread()
+        let sendMessage = agent.GetSendThreadMessage(threadId)
+        let sendContents = agent.GetSendThreadContents(threadId)
+        let mutable userInputRequests = [||]
+        task {
+            let! response = sendMessage "What is the weather like in Amsterdam?"
+            userInputRequests <- response.UserInputRequests |> Seq.toArray
+            while userInputRequests.Length > 0 do
+                // Ask the user to approve each function call request.
+                let userInputResponses =
+                    userInputRequests
+                    |> Array.choose (function
+                        | :? FunctionApprovalRequestContent as functionApprovalRequest ->
+                            printfn
+                                $"The agent would like to invoke the following function, please reply Y to approve: Name %s{functionApprovalRequest.FunctionCall.Name}"
+                            let approved = Console.ReadLine() = "Y"
+                            functionApprovalRequest.CreateResponse(approved) :> AIContent |> Some
+                        | _ -> None
+                    )
+                let! response = sendContents userInputResponses
+                userInputRequests <- response.UserInputRequests |> Seq.toArray
+                printfn "\nAgent: %O" response
+        }
+        |> _.Wait()
 
-Baseline.run()
+
+Target.run()

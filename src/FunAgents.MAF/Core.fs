@@ -8,22 +8,31 @@ open Microsoft.Extensions.AI
 
 type Extensions =
     [<Extension>]
-    static member GetThreadRun(agent: ChatClientAgent, ?thread: AgentThread, ?options: AgentRunOptions, ?ct: CancellationToken) =
+    static member GetSendThreadMessage(agent: ChatClientAgent, ?thread: AgentThread, ?options: AgentRunOptions, ?ct: CancellationToken) =
         let thread: AgentThread = thread |> Option.defaultWith agent.GetNewThread
         match options, ct with
-        | None, None ->  fun (message: string) -> agent.RunAsync(message, thread)
-        | Some options, None ->  fun (message: string) -> agent.RunAsync(message, thread, options)
-        | None, Some ct ->  fun (message: string) -> agent.RunAsync(message, thread, cancellationToken = ct)
-        | Some options, Some ct ->  fun (message: string) -> agent.RunAsync(message, thread, options, ct)
+        | None, None -> fun (message: string) -> agent.RunAsync(message, thread)
+        | Some options, None -> fun (message: string) -> agent.RunAsync(message, thread, options)
+        | None, Some ct -> fun (message: string) -> agent.RunAsync(message, thread, cancellationToken = ct)
+        | Some options, Some ct -> fun (message: string) -> agent.RunAsync(message, thread, options, ct)
 
     [<Extension>]
-    static member GetStreamingThreadRun(agent: ChatClientAgent, ?thread: AgentThread, ?options: AgentRunOptions, ?ct: CancellationToken) =
+    static member GetSendThreadContents(agent: ChatClientAgent, ?thread: AgentThread, ?options: AgentRunOptions, ?ct: CancellationToken) =
         let thread: AgentThread = thread |> Option.defaultWith agent.GetNewThread
         match options, ct with
-        | None, None ->  fun (message: string) -> agent.RunStreamingAsync(message, thread)
-        | Some options, None ->  fun (message: string) -> agent.RunStreamingAsync(message, thread, options)
-        | None, Some ct ->  fun (message: string) -> agent.RunStreamingAsync(message, thread, cancellationToken = ct)
-        | Some options, Some ct ->  fun (message: string) -> agent.RunStreamingAsync(message, thread, options, ct)
+        | None, None -> fun (messages: AIContent[]) -> agent.RunAsync(ChatMessage(ChatRole.User, messages), thread)
+        | Some options, None -> fun (messages: AIContent[]) -> agent.RunAsync(ChatMessage(ChatRole.User, messages), thread, options)
+        | None, Some ct -> fun (messages: AIContent[]) -> agent.RunAsync(ChatMessage(ChatRole.User, messages), thread, cancellationToken = ct)
+        | Some options, Some ct -> fun (messages: AIContent[]) -> agent.RunAsync(ChatMessage(ChatRole.User, messages), thread, options, ct)
+
+    [<Extension>]
+    static member GetStreamingSendThreadMessage(agent: ChatClientAgent, ?thread: AgentThread, ?options: AgentRunOptions, ?ct: CancellationToken) =
+        let thread: AgentThread = thread |> Option.defaultWith agent.GetNewThread
+        match options, ct with
+        | None, None -> fun (message: string) -> agent.RunStreamingAsync(message, thread)
+        | Some options, None -> fun (message: string) -> agent.RunStreamingAsync(message, thread, options)
+        | None, Some ct -> fun (message: string) -> agent.RunStreamingAsync(message, thread, cancellationToken = ct)
+        | Some options, Some ct -> fun (message: string) -> agent.RunStreamingAsync(message, thread, options, ct)
 
 type AiTool =
     static member Get(handler: Func<_, _, _, _, _>, ?options) =
