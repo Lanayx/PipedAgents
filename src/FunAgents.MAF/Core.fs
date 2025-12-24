@@ -1,6 +1,5 @@
 namespace FunAgents.MAF
 
-open System
 open System.Runtime.CompilerServices
 open System.Threading
 open Microsoft.Agents.AI

@@ -66,8 +66,8 @@ module Target =
             )
         // Streaming agent interaction with function tools.
         task {
-            let! result = agent.RunAsync("What is the weather like in Amsterdam?")
-            printf $"{result}"
+            for item in agent.RunStreamingAsync("What is the weather like in Amsterdam?") do
+                printf $"{item}"
         }
         |> _.Wait()
 
