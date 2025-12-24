@@ -2,10 +2,11 @@ namespace FunAgents.MAF
 
 open System
 open System.Runtime.CompilerServices
-
 open System.Threading
 open Microsoft.Agents.AI
 open Microsoft.Extensions.AI
+open FSharp.Quotations
+open FSharp.Quotations.Patterns
 
 type Extensions =
     [<Extension>]
@@ -24,13 +25,10 @@ type Extensions =
         fun (message: string) -> agent.RunStreamingAsync(message, thread, options = (options |> Option.toObj), ?cancellationToken = ct)
 
 type AiTool =
-    static member Get(handler: Func<_, _, _, _, _>, ?options) =
-        AIFunctionFactory.Create(handler, options = (options |> Option.toObj))
-    static member Get(handler: Func<_, _, _, _>, ?options) =
-        AIFunctionFactory.Create(handler, options = (options |> Option.toObj))
-    static member Get(handler: Func<_, _, _>, ?options) =
-        AIFunctionFactory.Create(handler, options = (options |> Option.toObj))
-    static member Get(handler: Func<_, _>, ?options) =
-        AIFunctionFactory.Create(handler, options = (options |> Option.toObj))
-    static member Get(handler: Action<_>, ?options) =
-        AIFunctionFactory.Create(handler, options = (options |> Option.toObj))
+    static member Get(handler: Expr, ?options) =
+        let rec extract = function
+            | Call(_, mi, _) -> mi
+            | Lambda(_, body) -> extract body
+            | _ -> failwith "Unsupported expression. Please provide a call to a function."
+        let mi = extract handler
+        AIFunctionFactory.Create(mi, target= null, options = (options |> Option.toObj))

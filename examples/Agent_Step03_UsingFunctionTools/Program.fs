@@ -60,14 +60,14 @@ module Target =
             client.CreateChatAgent(
                 ChatAgentOptions(
                     Instructions = "You are a helpful assistant",
-                    Tools = [| AiTool.Get(getWeather) |],
+                    Tools = [| AiTool.Get <@ getWeather @> |],
                     CreateResponseOptions = (fun _ -> CreateResponseOptions(StoredOutputEnabled = false))
                 )
             )
         // Streaming agent interaction with function tools.
         task {
-            for item in agent.RunStreamingAsync("What is the weather today?") do
-                printf $"{item}"
+            let! result = agent.RunAsync("What is the weather like in Amsterdam?")
+            printf $"{result}"
         }
         |> _.Wait()
 
