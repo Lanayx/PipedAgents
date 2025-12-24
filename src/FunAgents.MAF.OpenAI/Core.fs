@@ -5,6 +5,7 @@ namespace FunAgents.MAF.OpenAI
 open System
 open System.ClientModel
 open System.Runtime.CompilerServices
+
 open Microsoft.Agents.AI
 open Microsoft.Extensions.AI
 open OpenAI.Responses
@@ -79,6 +80,4 @@ type ChatAgentOptions() =
 type Extensions =
     [<Extension>]
     static member CreateChatAgent(agent: ResponsesClient, ?chatOptions: ChatAgentOptions) =
-        match chatOptions with
-        | Some options ->  agent.CreateAIAgent(options.ToAgentOptions())
-        | None -> agent.CreateAIAgent()
+        agent.CreateAIAgent(chatOptions |> Option.map _.ToAgentOptions() |> Option.toObj)

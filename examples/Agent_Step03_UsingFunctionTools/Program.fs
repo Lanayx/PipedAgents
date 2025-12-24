@@ -71,4 +71,4 @@ module Target =
         }
         |> _.Wait()
 
-Baseline.run()
+Target.run()
