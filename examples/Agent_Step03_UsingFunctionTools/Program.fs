@@ -64,6 +64,24 @@ module Target =
                     CreateResponseOptions = (fun _ -> CreateResponseOptions(StoredOutputEnabled = false))
                 )
             )
+        // Non-streaming agent interaction with function tools.
+        task {
+            let! result = agent.RunAsync("What is the weather like in Amsterdam?")
+            printfn $"{result}"
+        }
+        |> _.Wait()
+
+    let runStreaming () =
+        // Create the responses client and agent, and provide the function tool to the agent.
+        let client = Client.ForResponsesAPI(Environment.GetEnvironmentVariable "MODEL_ID")
+        let agent =
+            client.CreateChatAgent(
+                ChatAgentOptions(
+                    Instructions = "You are a helpful assistant",
+                    Tools = [| AiTool.Get <@ getWeather @> |],
+                    CreateResponseOptions = (fun _ -> CreateResponseOptions(StoredOutputEnabled = false))
+                )
+            )
         // Streaming agent interaction with function tools.
         task {
             for item in agent.RunStreamingAsync("What is the weather like in Amsterdam?") do

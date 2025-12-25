@@ -44,7 +44,7 @@ module BaseLine =
 
 module Target =
 
-    let run() =
+    let run () =
         let client = Client.ForResponsesAPI(Environment.GetEnvironmentVariable "MODEL_ID")
         let agent = client.CreateAIAgent(ChatClientAgentOptions(
             Name = "Joker",
@@ -53,7 +53,25 @@ module Target =
                 RawRepresentationFactory = fun _ -> CreateResponseOptions(StoredOutputEnabled = false)
             )
         ))
-        let run = agent.GetStreamingSendThreadMessage()
+        let run = agent.GetThreadRun()
+        task {
+            let! result1 = run "Tell me a joke about a pirate."
+            printfn $"{result1}"
+            let! result2 = run "Now tell the same joke for a kid"
+            printfn $"{result2}"
+        }
+        |> _.Wait()
+
+    let runStreaming() =
+        let client = Client.ForResponsesAPI(Environment.GetEnvironmentVariable "MODEL_ID")
+        let agent = client.CreateAIAgent(ChatClientAgentOptions(
+            Name = "Joker",
+            ChatOptions = ChatOptions(
+                Instructions = "You are good at telling jokes.",
+                RawRepresentationFactory = fun _ -> CreateResponseOptions(StoredOutputEnabled = false)
+            )
+        ))
+        let run = agent.GetStreamingThreadRun()
         task {
             do! "Tell me a joke about a pirate." |> run |> TaskSeq.iter (printf "%O")
             printfn ""

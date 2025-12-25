@@ -40,11 +40,22 @@ module Target =
         let agent = client.CreateAIAgent(
             instructions = "You are good at telling jokes.",
             name = "Joker")
+        task {
+            let! result = agent.RunAsync("Tell me a joke about a pirate.")
+            printfn $"{result}"
+        }
+        |> _.Wait()
+
+    let runSteaming() =
+        let client = Client.ForResponsesAPI(Environment.GetEnvironmentVariable "MODEL_ID")
+        let agent = client.CreateAIAgent(
+            instructions = "You are good at telling jokes.",
+            name = "Joker")
         let enumerator = agent.RunStreamingAsync("Tell me a joke about a pirate.").GetAsyncEnumerator()
         task {
             while! enumerator.MoveNextAsync() do
                 enumerator.Current |> string |> printf "%s"
         }
-        |> _.GetAwaiter().GetResult()
+        |> _.Wait()
 
 Target.run()
