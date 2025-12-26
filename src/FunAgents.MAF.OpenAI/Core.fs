@@ -22,7 +22,7 @@ type Client =
             )
         OpenAI.OpenAIClient(key, options).GetResponsesClient(model)
 
-type ChatAgentOptions() =
+type AgentOptions() =
     let agentOptions = ChatClientAgentOptions(ChatOptions = ChatOptions())
     member this.Id
         with set value = agentOptions.Id <- value
@@ -79,5 +79,5 @@ type ChatAgentOptions() =
 
 type Extensions =
     [<Extension>]
-    static member CreateChatAgent(agent: ResponsesClient, ?chatOptions: ChatAgentOptions) =
+    static member CreateChatAgent(agent: ResponsesClient, ?chatOptions: AgentOptions) =
         agent.CreateAIAgent(chatOptions |> Option.map _.ToAgentOptions() |> Option.toObj)

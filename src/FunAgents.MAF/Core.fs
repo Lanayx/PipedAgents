@@ -1,6 +1,7 @@
 namespace FunAgents.MAF
 
 open System.Runtime.CompilerServices
+open System.Text.Json
 open System.Threading
 open Microsoft.Agents.AI
 open Microsoft.Extensions.AI
@@ -38,7 +39,7 @@ type Extensions =
         let thread = thread |> Option.defaultWith agent.GetNewThread
         fun (messages: AIContent[]) -> agent.RunStreamingAsync(ChatMessage(ChatRole.User, messages), thread, options = (options |> Option.toObj), ?cancellationToken = ct)
 
-type AiTool =
+type Tool =
     static member Get(handler: Expr, ?options) =
         let rec extract = function
             | Call(_, mi, _) -> mi
@@ -46,3 +47,11 @@ type AiTool =
             | _ -> failwith "Unsupported expression. Please provide a call to a function."
         let mi = extract handler
         AIFunctionFactory.Create(mi, target= null, options = (options |> Option.toObj))
+
+type Thread =
+    static member ToString(thread: AgentThread, ?options: JsonSerializerOptions) =
+        thread.Serialize(options |> Option.toObj)
+        |> string
+    static member FromString(thread: string, agent: AIAgent, ?options: JsonSerializerOptions) =
+        let element = JsonElement.Parse(thread)
+        agent.DeserializeThread(element, options |> Option.toObj)

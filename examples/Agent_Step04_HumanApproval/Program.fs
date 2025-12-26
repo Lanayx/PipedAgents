@@ -75,9 +75,9 @@ module Target =
     let run () =
         let client = Client.ForResponsesAPI(Environment.GetEnvironmentVariable "MODEL_ID")
         let agent = client.CreateChatAgent(
-            ChatAgentOptions(
+            AgentOptions(
                 Instructions = "You are a helpful assistant",
-                Tools = [| <@ getWeather @> |> AiTool.Get |> ApprovalRequiredAIFunction |],
+                Tools = [| <@ getWeather @> |> Tool.Get |> ApprovalRequiredAIFunction |],
                 CreateResponseOptions = (fun _ -> CreateResponseOptions(StoredOutputEnabled = false))
             )
         )

@@ -74,7 +74,7 @@ module Target =
         let client = Client.ForResponsesAPI(Environment.GetEnvironmentVariable "MODEL_ID")
         let agent =
             client.CreateChatAgent(
-                ChatAgentOptions(
+                AgentOptions(
                     Name = "HelpfulAssistant",
                     Instructions = "You are a helpful assistant",
                     ResponseFormat = ChatResponseFormat.ForJsonSchema<PersonInfo>(),
