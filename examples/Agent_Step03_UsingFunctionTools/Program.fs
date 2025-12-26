@@ -65,11 +65,10 @@ module Target =
                 )
             )
         // Non-streaming agent interaction with function tools.
-        task {
+        +task {
             let! result = agent.RunAsync("What is the weather like in Amsterdam?")
             printfn $"{result}"
         }
-        |> _.Wait()
 
     let runStreaming () =
         // Create the responses client and agent, and provide the function tool to the agent.
@@ -83,10 +82,9 @@ module Target =
                 )
             )
         // Streaming agent interaction with function tools.
-        task {
+        +task {
             for item in agent.RunStreamingAsync("What is the weather like in Amsterdam?") do
                 printf $"{item}"
         }
-        |> _.Wait()
 
 Target.run()

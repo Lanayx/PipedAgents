@@ -59,7 +59,7 @@ module Target =
         // Create the responses client and agent, and provide the instructions and response format.
         let client = Client.ForResponsesAPI(Environment.GetEnvironmentVariable "MODEL_ID")
         let agent = client.CreateAIAgent(name = "HelpfulAssistant", instructions = "You are a helpful assistant.")
-        task {
+        +task {
             // Non-streaming agent interaction with structured output.
             let! response = agent.RunAsync<PersonInfo> "Please provide information about fictional character John Smith, who is a 35-year-old software engineer."
 
@@ -68,7 +68,6 @@ module Target =
             printfn $"Age: {response.Result.Age}"
             printfn $"Occupation: {response.Result.Occupation}"
         }
-        |> _.Wait()
 
     let runStreaming () =
         // Create the responses client and agent, and provide the instructions and response format.
@@ -86,7 +85,7 @@ module Target =
                 )
             )
             
-        task {
+        +task {
             // Streaming agent interaction with structured output.
             let updates = agent.RunStreamingAsync("Please provide information about fictional character John Smith, who is a 35-year-old software engineer.")
             
@@ -98,6 +97,5 @@ module Target =
             printfn $"Age: {personInfo.Age}"
             printfn $"Occupation: {personInfo.Occupation}"
         }
-        |> _.Wait()
 
 Target.runStreaming()

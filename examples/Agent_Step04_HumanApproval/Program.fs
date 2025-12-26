@@ -103,11 +103,10 @@ module Target =
                 else
                     printfn $"\nAgent: {response}"
             }
-        task {
+        +task {
             let! response = runMessage "What is the weather like in Amsterdam?"
             do! handleResponse response
         }
-        |> _.Wait()
 
 
 Target.run()

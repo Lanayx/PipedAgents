@@ -3,6 +3,7 @@ module Shared.Logging
 
 open System
 open System.Net.Http
+open System.Threading.Tasks
 
 type LoggingHandler(innerHandler: HttpMessageHandler) =
     inherit DelegatingHandler(innerHandler)
@@ -28,3 +29,5 @@ let getLoggingHttpClient() =
         )
     let loggingHandler = new LoggingHandler(socketHandler)
     new HttpClient(loggingHandler)
+
+let inline (~+) (t: Task<'a>) : 'a = t.GetAwaiter().GetResult()
