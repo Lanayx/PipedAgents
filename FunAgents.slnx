@@ -7,6 +7,7 @@
     <Project Path="examples/Agent_Step05_StructuredOutput/Agent_Step05_StructuredOutput.fsproj" />
     <Project Path="examples/Agent_Step06_PersistedConversations/Agent_Step06_PersistedConversations.fsproj" />
     <Project Path="examples/Agent_Step07_3rdPartyThreadStorage/Agent_Step07_3rdPartyThreadStorage.fsproj" />
+    <Project Path="examples/Agent_Step08_Observability/Agent_Step08_Observability.fsproj" />
     <Project Path="examples/Shared/Shared.fsproj" />
   </Folder>
   <Folder Name="/src/">
