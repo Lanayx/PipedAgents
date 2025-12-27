@@ -1,6 +1,7 @@
 namespace FunAgents.MAF
 
 open System.Runtime.CompilerServices
+open System.Runtime.InteropServices
 open System.Text.Json
 open System.Threading
 open Microsoft.Agents.AI
@@ -49,9 +50,14 @@ type Tool =
         AIFunctionFactory.Create(mi, target= null, options = (options |> Option.toObj))
 
 type Thread =
-    static member ToString(thread: AgentThread, ?options: JsonSerializerOptions) =
-        thread.Serialize(options |> Option.toObj)
+    static member New(agent: ChatClientAgent) =
+        agent.GetNewThread() :?> ChatClientAgentThread
+    [<Extension>]
+    static member ToString(thread: AgentThread,
+                           [<Optional; DefaultParameterValue(null:JsonSerializerOptions)>]options: JsonSerializerOptions) =
+        thread.Serialize(options)
         |> string
-    static member FromString(thread: string, agent: AIAgent, ?options: JsonSerializerOptions) =
+    static member FromString(thread: string, agent: AIAgent,
+                           [<Optional; DefaultParameterValue(null:JsonSerializerOptions)>]options: JsonSerializerOptions) =
         let element = JsonElement.Parse(thread)
-        agent.DeserializeThread(element, options |> Option.toObj)
+        agent.DeserializeThread(element, options)
