@@ -5,11 +5,10 @@ open System.ClientModel
 open System.ClientModel.Primitives
 open System.Net.Mime
 open FunAgents.MAF
-open Microsoft.Extensions.AI
 open OpenAI.Chat
+open Microsoft.Extensions.AI
 open Shared
 open FunAgents.MAF.OpenAI
-type ChatMessage = Microsoft.Extensions.AI.ChatMessage
 open FSharp.Control
 
 module BaseLine =
