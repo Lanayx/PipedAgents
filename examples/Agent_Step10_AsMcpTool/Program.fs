@@ -19,7 +19,7 @@ module Baseline =
         let key = ApiKeyCredential(
             Environment.GetEnvironmentVariable("OPENAI_API_KEY")
         )
-        let httpClient = getLoggingHttpClient()
+        let httpClient = getLoggingHttpClient(OutputStream.Error)
         let options = OpenAI.OpenAIClientOptions(
             Transport = new HttpClientPipelineTransport(httpClient),
             Endpoint = Uri(Environment.GetEnvironmentVariable "OPENAI_BASE_URL")
@@ -47,4 +47,24 @@ module Baseline =
             do! builder.Build().RunAsync()
         } |> _.GetAwaiter().GetResult()
 
-Baseline.run()
+module Target =
+    let run() =
+        let client = Client.ForResponsesAPI(Environment.GetEnvironmentVariable "MODEL_ID")
+        let agent =
+            client.CreateAgent(
+                AgentOptions(
+                    Name = "Joker",
+                    Instructions = "You are good at telling jokes, and you always start each joke with 'Aye aye, captain!'."
+                )
+            )
+        +task {
+            let tool = McpServerTool.Create(agent.AsAIFunction())
+            let builder = Host.CreateEmptyApplicationBuilder(null);
+            builder.Services
+                .AddMcpServer()
+                .WithStdioServerTransport()
+                .WithTools([tool]) |> ignore
+            do! builder.Build().RunAsync()
+        }
+
+Target.run()

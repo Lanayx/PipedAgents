@@ -25,7 +25,7 @@ module BaseLine =
         let client = OpenAIClient(key, options)
         let responseClient = client.GetResponsesClient(Environment.GetEnvironmentVariable "MODEL_ID")
         let agent = responseClient.CreateAIAgent(
-            instructions = "You are good at telling jokes.",
+            instructions = "You are good at telling jokes. Write jokes with all uppercase letters.",
             name = "Joker")
         agent.RunAsync("Tell me a joke about a pirate.")
         |> _.GetAwaiter().GetResult()
@@ -38,7 +38,7 @@ module Target =
     let run() =
         let client = Client.ForResponsesAPI(Environment.GetEnvironmentVariable "MODEL_ID")
         let agent = client.CreateAIAgent(
-            instructions = "You are good at telling jokes.",
+            instructions = "You are good at telling jokes. Write jokes with all uppercase letters.",
             name = "Joker")
         +task {
             let! result = agent.RunAsync("Tell me a joke about a pirate.")
@@ -48,7 +48,7 @@ module Target =
     let runSteaming() =
         let client = Client.ForResponsesAPI(Environment.GetEnvironmentVariable "MODEL_ID")
         let agent = client.CreateAIAgent(
-            instructions = "You are good at telling jokes.",
+            instructions = "You are good at telling jokes. Write jokes with all uppercase letters.",
             name = "Joker")
         let enumerator = agent.RunStreamingAsync("Tell me a joke about a pirate.").GetAsyncEnumerator()
         +task {
