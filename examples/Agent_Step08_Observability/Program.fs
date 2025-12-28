@@ -3,6 +3,7 @@
 open System
 open System.ClientModel
 open System.ClientModel.Primitives
+open FunAgents.MAF
 open FunAgents.MAF.OpenAI
 open Microsoft.Agents.AI
 open FSharp.Control
@@ -48,26 +49,44 @@ module Baseline =
 module Target =
 
     let run() =
-        // Create the responses client and agent with OpenTelemetry instrumentation.
-        // let client = Client.ForResponsesAPI(Environment.GetEnvironmentVariable "MODEL_ID")
-        // let agent =
-        //     client.CreateChatAgent(
-        //         ChatClientAgentOptions(
-        //             Name = "Joker",
-        //             ChatOptions =
-        //                 ChatOptions(
-        //                     Instructions = "You are good at telling jokes.",
-        //                     RawRepresentationFactory = (fun _ -> CreateResponseOptions(StoredOutputEnabled = false))
-        //                 )
-        //         )
-        //     )
-        //     .AsBuilder()
-        //     .UseOpenTelemetry(sourceName = "TargetAgent").Build()
-        // // Non-streaming agent interaction.
-        // agent.RunAsync("Tell me a joke about a pirate.")
-        // |> _.GetAwaiter().GetResult()
-        // |> string
-        // |> printfn "%s"
-        ()
+        let sourceName = Guid.NewGuid().ToString("N")
+        let tracerProviderBuilder =
+            Sdk.CreateTracerProviderBuilder()
+                .AddSource(sourceName)
+                .AddConsoleExporter()
+        let client = Client.ForResponsesAPI(Environment.GetEnvironmentVariable "MODEL_ID")
+        let agent =
+            client.CreateAgent(
+                AgentOptions(
+                    Name = "Joker",
+                    Instructions = "You are good at telling jokes.",
+                    CreateResponseOptions = (fun _ -> CreateResponseOptions(StoredOutputEnabled = false))
+                )
+            ).AddOpenTelemetry(sourceName)
+        +task {
+            use _ = tracerProviderBuilder.Build()
+            let! response = agent.RunAsync "Tell me a joke about a pirate."
+            printfn $"{response}"
+        }
 
-Baseline.run()
+    let runStreaming() =
+        let sourceName = Guid.NewGuid().ToString("N")
+        let tracerProviderBuilder =
+            Sdk.CreateTracerProviderBuilder()
+                .AddSource(sourceName)
+                .AddConsoleExporter()
+        let client = Client.ForResponsesAPI(Environment.GetEnvironmentVariable "MODEL_ID")
+        let agent =
+            client.CreateAgent(
+                AgentOptions(
+                    Name = "Joker",
+                    Instructions = "You are good at telling jokes.",
+                    CreateResponseOptions = (fun _ -> CreateResponseOptions(StoredOutputEnabled = false))
+                )
+            ).AddOpenTelemetry(sourceName)
+        +task {
+            use _ = tracerProviderBuilder.Build()
+            do! agent.RunStreamingAsync "Tell me a joke about a pirate." |> TaskSeq.iter (printf "%O")
+        }
+
+Target.runStreaming()

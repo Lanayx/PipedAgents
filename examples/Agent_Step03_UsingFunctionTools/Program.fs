@@ -57,7 +57,7 @@ module Target =
         // Create the responses client and agent, and provide the function tool to the agent.
         let client = Client.ForResponsesAPI(Environment.GetEnvironmentVariable "MODEL_ID")
         let agent =
-            client.CreateChatAgent(
+            client.CreateAgent(
                 AgentOptions(
                     Instructions = "You are a helpful assistant",
                     Tools = [| Tool.Get <@ getWeather @> |],
@@ -74,7 +74,7 @@ module Target =
         // Create the responses client and agent, and provide the function tool to the agent.
         let client = Client.ForResponsesAPI(Environment.GetEnvironmentVariable "MODEL_ID")
         let agent =
-            client.CreateChatAgent(
+            client.CreateAgent(
                 AgentOptions(
                     Instructions = "You are a helpful assistant",
                     Tools = [| Tool.Get <@ getWeather @> |],

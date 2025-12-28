@@ -155,7 +155,7 @@ module Target =
         let client = Client.ForResponsesAPI(Environment.GetEnvironmentVariable "MODEL_ID")
         let vectorStore = new InMemoryVectorStore()
         let agent =
-            client.CreateChatAgent(AgentOptions(
+            client.CreateAgent(AgentOptions(
                 Name = "Joker",
                 Instructions = "You are good at telling jokes.",
                 CreateResponseOptions = (fun _ -> CreateResponseOptions(StoredOutputEnabled = false)),

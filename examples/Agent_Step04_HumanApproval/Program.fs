@@ -74,7 +74,7 @@ module Target =
 
     let run () =
         let client = Client.ForResponsesAPI(Environment.GetEnvironmentVariable "MODEL_ID")
-        let agent = client.CreateChatAgent(
+        let agent = client.CreateAgent(
             AgentOptions(
                 Instructions = "You are a helpful assistant",
                 Tools = [| <@ getWeather @> |> Tool.Get |> ApprovalRequiredAIFunction |],

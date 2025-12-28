@@ -9,9 +9,10 @@ open Microsoft.Extensions.AI
 open FSharp.Quotations
 open FSharp.Quotations.Patterns
 
-type Extensions =
+
+type ThreadExtensions =
     [<Extension>]
-    static member GetThreadRun(agent: ChatClientAgent, ?thread: AgentThread, ?options: AgentRunOptions, ?ct: CancellationToken) =
+    static member GetThreadRun(agent: AIAgent, ?thread: AgentThread, ?options: AgentRunOptions, ?ct: CancellationToken) =
         let thread = thread |> Option.defaultWith agent.GetNewThread
         fun (message: string) -> agent.RunAsync(message, thread, options = (options |> Option.toObj), ?cancellationToken = ct)
 
@@ -21,7 +22,7 @@ type Extensions =
         fun (message: string) -> agent.RunAsync<'T>(message, thread, options = (options |> Option.toObj), ?cancellationToken = ct)
 
     [<Extension>]
-    static member GetThreadContentsRun(agent: ChatClientAgent, ?thread: AgentThread, ?options: AgentRunOptions, ?ct: CancellationToken) =
+    static member GetThreadContentsRun(agent: AIAgent, ?thread: AgentThread, ?options: AgentRunOptions, ?ct: CancellationToken) =
         let thread = thread |> Option.defaultWith agent.GetNewThread
         fun (messages: AIContent[]) -> agent.RunAsync(ChatMessage(ChatRole.User, messages), thread, options = (options |> Option.toObj), ?cancellationToken = ct)
 
@@ -31,14 +32,25 @@ type Extensions =
         fun (messages: AIContent[]) -> agent.RunAsync<'T>(ChatMessage(ChatRole.User, messages), thread, options = (options |> Option.toObj), ?cancellationToken = ct)
 
     [<Extension>]
-    static member GetStreamingThreadRun(agent: ChatClientAgent, ?thread: AgentThread, ?options: AgentRunOptions, ?ct: CancellationToken) =
+    static member GetStreamingThreadRun(agent: AIAgent, ?thread: AgentThread, ?options: AgentRunOptions, ?ct: CancellationToken) =
         let thread = thread |> Option.defaultWith agent.GetNewThread
         fun (message: string) -> agent.RunStreamingAsync(message, thread, options = (options |> Option.toObj), ?cancellationToken = ct)
 
     [<Extension>]
-    static member GetStreamingThreadContentsRun(agent: ChatClientAgent, ?thread: AgentThread, ?options: AgentRunOptions, ?ct: CancellationToken) =
+    static member GetStreamingThreadContentsRun(agent: AIAgent, ?thread: AgentThread, ?options: AgentRunOptions, ?ct: CancellationToken) =
         let thread = thread |> Option.defaultWith agent.GetNewThread
         fun (messages: AIContent[]) -> agent.RunStreamingAsync(ChatMessage(ChatRole.User, messages), thread, options = (options |> Option.toObj), ?cancellationToken = ct)
+
+type OpenTelemetryOptions() =
+    member val EnableSensitiveData: bool = false with get, set
+type AgentExtensions =
+    [<Extension>]
+    static member AddOpenTelemetry(agent: ChatClientAgent, ?sourceName: string, ?options: OpenTelemetryOptions) =
+        match options with
+        | None ->
+            new OpenTelemetryAgent(agent, (sourceName |> Option.toObj))
+        | Some options ->
+            new OpenTelemetryAgent(agent, (sourceName |> Option.toObj), EnableSensitiveData = options.EnableSensitiveData)
 
 type Tool =
     static member Get(handler: Expr, ?options) =

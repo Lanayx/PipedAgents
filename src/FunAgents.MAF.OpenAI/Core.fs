@@ -79,5 +79,5 @@ type AgentOptions() =
 
 type Extensions =
     [<Extension>]
-    static member CreateChatAgent(agent: ResponsesClient, ?chatOptions: AgentOptions) =
-        agent.CreateAIAgent(chatOptions |> Option.map _.ToAgentOptions() |> Option.toObj)
+    static member CreateAgent(agent: ResponsesClient, chatOptions: AgentOptions) =
+        agent.CreateAIAgent(chatOptions.ToAgentOptions())

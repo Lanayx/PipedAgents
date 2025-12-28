@@ -74,10 +74,11 @@ module Target =
         let agent =
             Environment.GetEnvironmentVariable "MODEL_ID"
             |> Client.ForResponsesAPI
-            |> _.CreateChatAgent(AgentOptions(
+            |> _.CreateAgent(AgentOptions(
                 Name = "Joker",
                 Instructions = "You are good at telling jokes.",
-                CreateResponseOptions = fun _ -> CreateResponseOptions(StoredOutputEnabled = false)))
+                CreateResponseOptions = fun _ -> CreateResponseOptions(StoredOutputEnabled = false)
+            ))
         
         +task {
             // Start a new thread for the agent conversation.
