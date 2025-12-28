@@ -82,8 +82,8 @@ module Target =
             )
         )
         let threadId = agent.GetNewThread()
-        let runMessage = agent.GetThreadRun(threadId)
-        let runContents = agent.GetThreadContentsRun(threadId)
+        let run = agent.GetThreadRun(threadId)
+        let runMsg = agent.GetThreadMessageRun(threadId)
         let rec handleResponse (response: AgentRunResponse) =
             task {
                 let userInputRequests = response.UserInputRequests |> Seq.toArray
@@ -98,13 +98,14 @@ module Target =
                                 let approved = Console.ReadLine() = "Y"
                                 functionApprovalRequest.CreateResponse(approved) :> AIContent |> Some
                             | _ -> None)
-                        |> runContents
+                        |> Message.GetUserMessage
+                        |> runMsg
                     return! handleResponse response
                 else
                     printfn $"\nAgent: {response}"
             }
         +task {
-            let! response = runMessage "What is the weather like in Amsterdam?"
+            let! response = run "What is the weather like in Amsterdam?"
             do! handleResponse response
         }
 
