@@ -3,9 +3,9 @@
 open System
 open System.ClientModel
 open System.ClientModel.Primitives
+open OpenAI.Chat
 open Shared
 open OpenAI
-open OpenAI.Responses
 open FunAgents.MAF.OpenAI
 
 module BaseLine =
@@ -23,7 +23,7 @@ module BaseLine =
         // let models = httpClient.GetStringAsync(Uri((Environment.GetEnvironmentVariable "OPENAI_BASE_URL") + "/models")).GetAwaiter().GetResult()
 
         let client = OpenAIClient(key, options)
-        let responseClient = client.GetResponsesClient(Environment.GetEnvironmentVariable "MODEL_ID")
+        let responseClient = client.GetChatClient(Environment.GetEnvironmentVariable "MODEL_ID")
         let agent = responseClient.CreateAIAgent(
             instructions = "You are good at telling jokes. Write jokes with all uppercase letters.",
             name = "Joker")
@@ -36,7 +36,7 @@ module BaseLine =
 module Target =
 
     let run() =
-        let client = Client.ForResponsesAPI(Environment.GetEnvironmentVariable "MODEL_ID")
+        let client = Client.ForChatCompletionsAPI(Environment.GetEnvironmentVariable "MODEL_ID")
         let agent = client.CreateAIAgent(
             instructions = "You are good at telling jokes. Write jokes with all uppercase letters.",
             name = "Joker")
@@ -46,7 +46,7 @@ module Target =
         }
 
     let runSteaming() =
-        let client = Client.ForResponsesAPI(Environment.GetEnvironmentVariable "MODEL_ID")
+        let client = Client.ForChatCompletionsAPI(Environment.GetEnvironmentVariable "MODEL_ID")
         let agent = client.CreateAIAgent(
             instructions = "You are good at telling jokes. Write jokes with all uppercase letters.",
             name = "Joker")

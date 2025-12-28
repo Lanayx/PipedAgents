@@ -46,12 +46,10 @@ module Target =
 
     let run () =
         let client = Client.ForResponsesAPI(Environment.GetEnvironmentVariable "MODEL_ID")
-        let agent = client.CreateAIAgent(ChatClientAgentOptions(
+        let agent = client.CreateAgent(AgentOptions(
             Name = "Joker",
-            ChatOptions = ChatOptions(
-                Instructions = "You are good at telling jokes.",
-                RawRepresentationFactory = fun _ -> CreateResponseOptions(StoredOutputEnabled = false)
-            )
+            Instructions = "You are good at telling jokes.",
+            CreateRawOptions = fun _ -> CreateResponseOptions(StoredOutputEnabled = false)
         ))
         let run = agent.GetThreadRun()
         task {
@@ -64,12 +62,10 @@ module Target =
 
     let runStreaming() =
         let client = Client.ForResponsesAPI(Environment.GetEnvironmentVariable "MODEL_ID")
-        let agent = client.CreateAIAgent(ChatClientAgentOptions(
+        let agent = client.CreateAgent(AgentOptions(
             Name = "Joker",
-            ChatOptions = ChatOptions(
-                Instructions = "You are good at telling jokes.",
-                RawRepresentationFactory = fun _ -> CreateResponseOptions(StoredOutputEnabled = false)
-            )
+            Instructions = "You are good at telling jokes.",
+            CreateRawOptions = fun _ -> CreateResponseOptions(StoredOutputEnabled = false)
         ))
         let run = agent.GetStreamingThreadRun()
         +task {

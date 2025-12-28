@@ -77,7 +77,7 @@ module Target =
             |> _.CreateAgent(AgentOptions(
                 Name = "Joker",
                 Instructions = "You are good at telling jokes.",
-                CreateResponseOptions = fun _ -> CreateResponseOptions(StoredOutputEnabled = false)
+                CreateRawOptions = fun _ -> CreateResponseOptions(StoredOutputEnabled = false)
             ))
         
         +task {

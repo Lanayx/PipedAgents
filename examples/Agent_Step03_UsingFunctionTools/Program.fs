@@ -61,7 +61,7 @@ module Target =
                 AgentOptions(
                     Instructions = "You are a helpful assistant",
                     Tools = [| Tool.Get <@ getWeather @> |],
-                    CreateResponseOptions = (fun _ -> CreateResponseOptions(StoredOutputEnabled = false))
+                    CreateRawOptions = (fun _ -> CreateResponseOptions(StoredOutputEnabled = false))
                 )
             )
         // Non-streaming agent interaction with function tools.
@@ -78,7 +78,7 @@ module Target =
                 AgentOptions(
                     Instructions = "You are a helpful assistant",
                     Tools = [| Tool.Get <@ getWeather @> |],
-                    CreateResponseOptions = (fun _ -> CreateResponseOptions(StoredOutputEnabled = false))
+                    CreateRawOptions = (fun _ -> CreateResponseOptions(StoredOutputEnabled = false))
                 )
             )
         // Streaming agent interaction with function tools.

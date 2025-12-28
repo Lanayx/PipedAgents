@@ -158,7 +158,7 @@ module Target =
             client.CreateAgent(AgentOptions(
                 Name = "Joker",
                 Instructions = "You are good at telling jokes.",
-                CreateResponseOptions = (fun _ -> CreateResponseOptions(StoredOutputEnabled = false)),
+                CreateRawOptions = (fun _ -> CreateResponseOptions(StoredOutputEnabled = false)),
                 ChatMessageStoreFactory = (fun ctx -> VectorChatMessageStore(vectorStore, ctx.SerializedState))
             ))
 

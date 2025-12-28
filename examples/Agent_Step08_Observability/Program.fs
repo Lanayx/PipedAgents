@@ -60,7 +60,7 @@ module Target =
                 AgentOptions(
                     Name = "Joker",
                     Instructions = "You are good at telling jokes.",
-                    CreateResponseOptions = (fun _ -> CreateResponseOptions(StoredOutputEnabled = false))
+                    CreateRawOptions = (fun _ -> CreateResponseOptions(StoredOutputEnabled = false))
                 )
             ).AddOpenTelemetry(sourceName)
         +task {
@@ -81,7 +81,7 @@ module Target =
                 AgentOptions(
                     Name = "Joker",
                     Instructions = "You are good at telling jokes.",
-                    CreateResponseOptions = (fun _ -> CreateResponseOptions(StoredOutputEnabled = false))
+                    CreateRawOptions = (fun _ -> CreateResponseOptions(StoredOutputEnabled = false))
                 )
             ).AddOpenTelemetry(sourceName)
         +task {

@@ -79,10 +79,10 @@ module Target =
                     Name = "HelpfulAssistant",
                     Instructions = "You are a helpful assistant",
                     ResponseFormat = ChatResponseFormat.ForJsonSchema<PersonInfo>(),
-                    CreateResponseOptions = (fun _ -> CreateResponseOptions(
-                        ReasoningOptions = ResponseReasoningOptions(
-                            ReasoningEffortLevel = ResponseReasoningEffortLevel.Minimal)
-                    ))
+                    CreateRawOptions = (fun _ -> CreateResponseOptions(
+                                                     ReasoningOptions = ResponseReasoningOptions(
+                                                                            ReasoningEffortLevel = ResponseReasoningEffortLevel.Minimal)
+                                                     ))
                 )
             )
             

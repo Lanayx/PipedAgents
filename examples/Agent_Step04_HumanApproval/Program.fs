@@ -78,7 +78,7 @@ module Target =
             AgentOptions(
                 Instructions = "You are a helpful assistant",
                 Tools = [| <@ getWeather @> |> Tool.Get |> ApprovalRequiredAIFunction |],
-                CreateResponseOptions = (fun _ -> CreateResponseOptions(StoredOutputEnabled = false))
+                CreateRawOptions = (fun _ -> CreateResponseOptions(StoredOutputEnabled = false))
             )
         )
         let threadId = agent.GetNewThread()

@@ -8,6 +8,7 @@ open System.Runtime.CompilerServices
 
 open Microsoft.Agents.AI
 open Microsoft.Extensions.AI
+open OpenAI.Chat
 open OpenAI.Responses
 
 type Client =
@@ -22,7 +23,18 @@ type Client =
             )
         OpenAI.OpenAIClient(key, options).GetResponsesClient(model)
 
-type AgentOptions() =
+    static member ForChatCompletionsAPI(model, ?key, ?options) =
+        let key =
+            key |> Option.defaultValue (
+                ApiKeyCredential(Environment.GetEnvironmentVariable("OPENAI_API_KEY"))
+            )
+        let options =
+            options |> Option.defaultValue (
+                OpenAI.OpenAIClientOptions(Endpoint = Uri(Environment.GetEnvironmentVariable "OPENAI_BASE_URL"))
+            )
+        OpenAI.OpenAIClient(key, options).GetChatClient(model)
+
+type AgentOptions<'T>() =
     let agentOptions = ChatClientAgentOptions(ChatOptions = ChatOptions())
     member this.Id
         with set value = agentOptions.Id <- value
@@ -70,14 +82,17 @@ type AgentOptions() =
         with set value = agentOptions.ChatOptions.AllowBackgroundResponses <- value
     member this.ContinuationToken
         with set value = agentOptions.ChatOptions.ContinuationToken <- value
-    member this.CreateResponseOptions
-        with set (value: IChatClient -> CreateResponseOptions) =
-            agentOptions.ChatOptions.RawRepresentationFactory <- (fun x -> value x)
+    member this.CreateRawOptions
+        with set (value: IChatClient -> 'T) =
+            agentOptions.ChatOptions.RawRepresentationFactory <- (fun x -> value x |> box)
     member this.AdditionalProperties
         with set value = agentOptions.ChatOptions.AdditionalProperties <- value
     member this.ToAgentOptions() = agentOptions
 
 type Extensions =
     [<Extension>]
-    static member CreateAgent(agent: ResponsesClient, chatOptions: AgentOptions) =
+    static member CreateAgent(agent: ResponsesClient, chatOptions: AgentOptions<CreateResponseOptions>) =
+        agent.CreateAIAgent(chatOptions.ToAgentOptions())
+    [<Extension>]
+    static member CreateAgent(agent: ChatClient, chatOptions: AgentOptions<ChatCompletionOptions>) =
         agent.CreateAIAgent(chatOptions.ToAgentOptions())
