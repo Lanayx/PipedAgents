@@ -11,6 +11,7 @@
     <Project Path="examples/Agent_Step10_AsMcpTool/Agent_Step10_AsMcpTool.fsproj" />
     <Project Path="examples/Agent_Step11_UsingImages/Agent_Step11_UsingImages.fsproj" />
     <Project Path="examples/Agent_Step12_AsFunctionTool/Agent_Step12_AsFunctionTool.fsproj" />
+    <Project Path="examples/Agent_Step14_Middleware/Agent_Step14_Middleware.fsproj" />
     <Project Path="examples/Shared/Shared.fsproj" />
   </Folder>
   <Folder Name="/src/">
