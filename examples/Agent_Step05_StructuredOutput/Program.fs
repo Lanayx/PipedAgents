@@ -57,8 +57,9 @@ module Target =
 
     let run() =
         // Create the responses client and agent, and provide the instructions and response format.
-        let client = Client.ForResponsesAPI(Environment.GetEnvironmentVariable "MODEL_ID")
-        let agent = client.CreateAIAgent(name = "HelpfulAssistant", instructions = "You are a helpful assistant.")
+        use client = Client.ForResponsesAPI(Environment.GetEnvironmentVariable "MODEL_ID")
+        let agent = client.CreateAgent(AgentOptions(
+            Name = "HelpfulAssistant", Instructions = "You are a helpful assistant."))
         let run = agent.GetThreadRun<PersonInfo>()
         +task {
             // Non-streaming agent interaction with structured output.
@@ -72,7 +73,7 @@ module Target =
 
     let runStreaming() =
         // Create the responses client and agent, and provide the instructions and response format.
-        let client = Client.ForResponsesAPI(Environment.GetEnvironmentVariable "MODEL_ID")
+        use client = Client.ForResponsesAPI(Environment.GetEnvironmentVariable "MODEL_ID")
         let agent =
             client.CreateAgent(
                 AgentOptions(

@@ -45,7 +45,7 @@ module BaseLine =
 module Target =
 
     let run () =
-        let client = Client.ForResponsesAPI(Environment.GetEnvironmentVariable "MODEL_ID")
+        use client = Client.ForResponsesAPI(Environment.GetEnvironmentVariable "MODEL_ID")
         let agent = client.CreateAgent(AgentOptions(
             Name = "Joker",
             Instructions = "You are good at telling jokes.",
@@ -61,7 +61,7 @@ module Target =
         |> _.Wait()
 
     let runStreaming() =
-        let client = Client.ForResponsesAPI(Environment.GetEnvironmentVariable "MODEL_ID")
+        use client = Client.ForResponsesAPI(Environment.GetEnvironmentVariable "MODEL_ID")
         let agent = client.CreateAgent(AgentOptions(
             Name = "Joker",
             Instructions = "You are good at telling jokes.",

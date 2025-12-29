@@ -49,7 +49,7 @@ module Baseline =
 
 module Target =
     let run() =
-        let client = Client.ForResponsesAPI(Environment.GetEnvironmentVariable "MODEL_ID")
+        use client = Client.ForResponsesAPI(Environment.GetEnvironmentVariable "MODEL_ID")
         let agent =
             client.CreateAgent(
                 AgentOptions(

@@ -55,7 +55,7 @@ module Target =
 
     let run () =
         // Create the responses client and agent, and provide the function tool to the agent.
-        let client = Client.ForResponsesAPI(Environment.GetEnvironmentVariable "MODEL_ID")
+        use client = Client.ForResponsesAPI(Environment.GetEnvironmentVariable "MODEL_ID")
         let agent =
             client.CreateAgent(
                 AgentOptions(
@@ -72,7 +72,7 @@ module Target =
 
     let runStreaming () =
         // Create the responses client and agent, and provide the function tool to the agent.
-        let client = Client.ForResponsesAPI(Environment.GetEnvironmentVariable "MODEL_ID")
+        use client = Client.ForResponsesAPI(Environment.GetEnvironmentVariable "MODEL_ID")
         let agent =
             client.CreateAgent(
                 AgentOptions(

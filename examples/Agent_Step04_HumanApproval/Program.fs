@@ -73,7 +73,7 @@ module Target =
         $"The weather in {location} is cloudy with a high of 15°C."
 
     let run () =
-        let client = Client.ForResponsesAPI(Environment.GetEnvironmentVariable "MODEL_ID")
+        use client = Client.ForResponsesAPI(Environment.GetEnvironmentVariable "MODEL_ID")
         let agent = client.CreateAgent(
             AgentOptions(
                 Instructions = "You are a helpful assistant",

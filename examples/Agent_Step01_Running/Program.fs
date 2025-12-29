@@ -37,9 +37,9 @@ module Target =
 
     let run() =
         let client = Client.ForChatCompletionsAPI(Environment.GetEnvironmentVariable "MODEL_ID")
-        let agent = client.CreateAIAgent(
-            instructions = "You are good at telling jokes. Write jokes with all uppercase letters.",
-            name = "Joker")
+        let agent = client.CreateAgent(AgentOptions(
+            Instructions = "You are good at telling jokes. Write jokes with all uppercase letters.",
+            Name = "Joker"))
         +task {
             let! result = agent.RunAsync("Tell me a joke about a pirate.")
             printfn $"{result}"
@@ -47,9 +47,9 @@ module Target =
 
     let runSteaming() =
         let client = Client.ForChatCompletionsAPI(Environment.GetEnvironmentVariable "MODEL_ID")
-        let agent = client.CreateAIAgent(
-            instructions = "You are good at telling jokes. Write jokes with all uppercase letters.",
-            name = "Joker")
+        let agent = client.CreateAgent(AgentOptions(
+            Instructions = "You are good at telling jokes. Write jokes with all uppercase letters.",
+            Name = "Joker"))
         let enumerator = agent.RunStreamingAsync("Tell me a joke about a pirate.").GetAsyncEnumerator()
         +task {
             while! enumerator.MoveNextAsync() do

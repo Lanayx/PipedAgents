@@ -40,7 +40,7 @@ module Target =
 
     let runStreaming() =
         let client = Client.ForChatCompletionsAPI(Environment.GetEnvironmentVariable "MODEL_ID")
-        let agent = client.CreateAIAgent(name = "VisionAgent")
+        let agent = client.CreateAgent(AgentOptions(Name = "VisionAgent"))
         let message =
             [|
                 Message.GetTextContent("What do you see in this image?")

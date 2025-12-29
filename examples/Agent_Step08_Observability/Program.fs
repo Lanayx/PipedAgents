@@ -54,7 +54,7 @@ module Target =
             Sdk.CreateTracerProviderBuilder()
                 .AddSource(sourceName)
                 .AddConsoleExporter()
-        let client = Client.ForResponsesAPI(Environment.GetEnvironmentVariable "MODEL_ID")
+        use client = Client.ForResponsesAPI(Environment.GetEnvironmentVariable "MODEL_ID")
         let agent =
             client.CreateAgent(
                 AgentOptions(
@@ -75,7 +75,7 @@ module Target =
             Sdk.CreateTracerProviderBuilder()
                 .AddSource(sourceName)
                 .AddConsoleExporter()
-        let client = Client.ForResponsesAPI(Environment.GetEnvironmentVariable "MODEL_ID")
+        use client = Client.ForResponsesAPI(Environment.GetEnvironmentVariable "MODEL_ID")
         let agent =
             client.CreateAgent(
                 AgentOptions(
