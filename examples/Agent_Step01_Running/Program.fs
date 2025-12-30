@@ -50,8 +50,8 @@ module Target =
         let agent = client.CreateAgent(AgentOptions(
             Instructions = "You are good at telling jokes. Write jokes with all uppercase letters.",
             Name = "Joker"))
-        let enumerator = agent.RunStreamingAsync("Tell me a joke about a pirate.").GetAsyncEnumerator()
         +task {
+            use enumerator = agent.RunStreamingAsync("Tell me a joke about a pirate.").GetAsyncEnumerator()
             while! enumerator.MoveNextAsync() do
                 enumerator.Current |> string |> printf "%s"
         }

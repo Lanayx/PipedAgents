@@ -6,6 +6,7 @@ open System.Runtime.CompilerServices
 open System.Runtime.InteropServices
 open System.Text.Json
 open System.Threading
+open System.Threading.Tasks
 open Microsoft.Agents.AI
 open Microsoft.Extensions.AI
 open FSharp.Quotations
@@ -47,12 +48,48 @@ type OpenTelemetryOptions() =
     member val EnableSensitiveData: bool = false with get, set
 type AgentExtensions =
     [<Extension>]
-    static member AddOpenTelemetry(agent: ChatClientAgent, ?sourceName: string, ?options: OpenTelemetryOptions) =
+    static member AddOpenTelemetry(agent: AIAgent, ?sourceName: string, ?options: OpenTelemetryOptions) =
         match options with
         | None ->
             new OpenTelemetryAgent(agent, (sourceName |> Option.toObj))
         | Some options ->
             new OpenTelemetryAgent(agent, (sourceName |> Option.toObj), EnableSensitiveData = options.EnableSensitiveData)
+    [<Extension>]
+    static member AddRunMiddleware(agent: AIAgent,
+            runMiddleware: ChatMessage seq -> AgentThread -> AgentRunOptions -> AIAgent -> CancellationToken -> Task<AgentRunResponse>,
+            ?streamRunMiddleware: ChatMessage seq -> AgentThread -> AgentRunOptions -> AIAgent -> CancellationToken -> IAsyncEnumerable<AgentRunResponseUpdate>
+            ) =
+        match streamRunMiddleware with
+        | Some f ->
+            agent.AsBuilder()
+                .Use(runMiddleware, f)
+                .Build()
+        | None ->
+            agent.AsBuilder()
+                .Use(runMiddleware, null)
+                .Build()
+
+    [<Extension>]
+    static member AddFunctionCallMiddleware(agent: AIAgent,
+            functionCallMiddleware: AIAgent -> FunctionInvocationContext -> Func<FunctionInvocationContext, CancellationToken, ValueTask<obj>> -> CancellationToken -> ValueTask<obj>
+            ) =
+        agent.AsBuilder()
+            .Use(functionCallMiddleware)
+            .Build()
+    [<Extension>]
+    static member AddMiddleware(agent: IChatClient,
+                                runMiddleware: ChatMessage seq -> ChatOptions -> IChatClient -> CancellationToken -> Task<ChatResponse>,
+                                ?streamRunMiddleware: ChatMessage seq -> ChatOptions -> IChatClient -> CancellationToken -> IAsyncEnumerable<ChatResponseUpdate>
+        ) =
+        match streamRunMiddleware with
+        | Some f ->
+            agent.AsBuilder()
+                .Use(runMiddleware, f)
+                .Build()
+        | None ->
+            agent.AsBuilder()
+                .Use(runMiddleware, null)
+                .Build()
 
 type Tool =
     static member Get(handler: Expr, ?options) =
