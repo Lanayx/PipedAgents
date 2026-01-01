@@ -103,6 +103,8 @@ type Tool =
 type Thread =
     static member New(agent: ChatClientAgent) =
         agent.GetNewThread() :?> ChatClientAgentThread
+    static member GetChatHistory(thread: ChatClientAgentThread) =
+        thread.GetService<IList<ChatMessage>>()
     [<Extension>]
     static member ToString(thread: AgentThread,
                            [<Optional; DefaultParameterValue(null:JsonSerializerOptions)>]options: JsonSerializerOptions) =
