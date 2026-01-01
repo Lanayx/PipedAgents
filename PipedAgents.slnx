@@ -16,7 +16,7 @@
     <Project Path="examples/Shared/Shared.fsproj" />
   </Folder>
   <Folder Name="/src/">
-    <Project Path="src/FunAgents.MAF.OpenAI/FunAgents.MAF.OpenAI.fsproj" />
-    <Project Path="src/FunAgents.MAF/FunAgents.MAF.fsproj" />
+    <Project Path="src/PipedAgents.MAF.OpenAI/PipedAgents.MAF.OpenAI.fsproj" />
+    <Project Path="src/PipedAgents.MAF/PipedAgents.MAF.fsproj" />
   </Folder>
 </Solution>

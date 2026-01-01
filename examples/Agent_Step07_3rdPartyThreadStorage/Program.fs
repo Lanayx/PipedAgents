@@ -8,8 +8,8 @@ open System.Text.Json
 open System.Threading
 open System.Runtime.InteropServices
 open FSharp.Control
-open FunAgents.MAF
-open FunAgents.MAF.OpenAI
+open PipedAgents.MAF
+open PipedAgents.MAF.OpenAI
 open Microsoft.Agents.AI
 open Microsoft.Extensions.AI
 open Microsoft.Extensions.VectorData

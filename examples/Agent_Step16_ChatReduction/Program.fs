@@ -1,15 +1,15 @@
-﻿#nowarn "57"
+#nowarn "57"
 
 open System
 open System.ClientModel
 open System.ClientModel.Primitives
 open System.Collections.Generic
-open FunAgents.MAF
+open PipedAgents.MAF
 open Microsoft.Agents.AI
 open Microsoft.Extensions.AI
 open Shared
 open OpenAI.Responses
-open FunAgents.MAF.OpenAI
+open PipedAgents.MAF.OpenAI
 open FSharp.Control
 
 module BaseLine =

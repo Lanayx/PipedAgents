@@ -5,8 +5,8 @@ open System.ClientModel
 open System.ClientModel.Primitives
 open System.ComponentModel
 open FSharp.Control
-open FunAgents.MAF
-open FunAgents.MAF.OpenAI
+open PipedAgents.MAF
+open PipedAgents.MAF.OpenAI
 open Microsoft.Agents.AI
 open Microsoft.Extensions.AI
 open OpenAI.Responses

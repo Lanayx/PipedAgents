@@ -1,6 +1,6 @@
 #nowarn "57"
 
-namespace FunAgents.MAF
+namespace PipedAgents.MAF
 
 open System
 open System.Collections.Generic
@@ -179,3 +179,4 @@ type Message =
         UriContent(uri, mediaType) :> AIContent
     static member GetUserMessage(contents: IList<AIContent>) =
         ChatMessage(ChatRole.User, contents)
+

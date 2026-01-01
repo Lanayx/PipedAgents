@@ -3,8 +3,8 @@
 open System
 open System.ClientModel
 open System.ClientModel.Primitives
-open FunAgents.MAF
-open FunAgents.MAF.OpenAI
+open PipedAgents.MAF
+open PipedAgents.MAF.OpenAI
 open Microsoft.Agents.AI
 open FSharp.Control
 open OpenAI.Responses
@@ -90,3 +90,4 @@ module Target =
         }
 
 Target.runStreaming()
+

@@ -1,10 +1,10 @@
-﻿#nowarn "57"
+#nowarn "57"
 
-namespace FunAgents.MAF.OpenAI
+namespace PipedAgents.MAF.OpenAI
 
 open System
 open System.ClientModel
-open FunAgents.MAF
+open PipedAgents.MAF
 open Microsoft.Agents.AI
 open Microsoft.Extensions.AI
 open OpenAI.Chat
@@ -74,3 +74,4 @@ type Client =
             )
         OpenAI.OpenAIClient(key, options).GetChatClient(model).AsIChatClient()
             |> fun chatClient -> new ResponsesChatClient(chatClient) |> ResponsesClient
+

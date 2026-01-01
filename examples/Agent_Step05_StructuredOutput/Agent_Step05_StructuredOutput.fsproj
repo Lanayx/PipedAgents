@@ -11,7 +11,7 @@
     </ItemGroup>
 
     <ItemGroup>
-      <ProjectReference Include="..\..\src\FunAgents.MAF.OpenAI\FunAgents.MAF.OpenAI.fsproj" />
+      <ProjectReference Include="..\..\src\PipedAgents.MAF.OpenAI\PipedAgents.MAF.OpenAI.fsproj" />
       <ProjectReference Include="..\Shared\Shared.fsproj" />
     </ItemGroup>
 
@@ -20,3 +20,4 @@
     </ItemGroup>
 
 </Project>
+

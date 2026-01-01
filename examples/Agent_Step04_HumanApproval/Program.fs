@@ -65,8 +65,8 @@ module Baseline =
 
 
 module Target =
-    open FunAgents.MAF.OpenAI
-    open FunAgents.MAF
+    open PipedAgents.MAF.OpenAI
+    open PipedAgents.MAF
 
     [<Description("Get the weather for a given location.")>]
     let getWeather ([<Description("The location to get the weather for.")>] location: string) : string =
@@ -111,3 +111,4 @@ module Target =
 
 
 Target.run()
+

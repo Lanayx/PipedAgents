@@ -7,8 +7,8 @@ open System.ComponentModel
 open System.Text.Json
 open System.Text.Json.Serialization
 open FSharp.Control
-open FunAgents.MAF
-open FunAgents.MAF.OpenAI
+open PipedAgents.MAF
+open PipedAgents.MAF.OpenAI
 open Microsoft.Agents.AI
 open Microsoft.Extensions.AI
 open OpenAI.Responses
@@ -101,3 +101,4 @@ module Target =
         }
 
 Target.runStreaming()
+

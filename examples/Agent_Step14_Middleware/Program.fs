@@ -11,8 +11,8 @@ open System.Threading.Tasks
 open Microsoft.Agents.AI
 open Microsoft.Extensions.AI
 open OpenAI.Responses
-open FunAgents.MAF
-open FunAgents.MAF.OpenAI
+open PipedAgents.MAF
+open PipedAgents.MAF.OpenAI
 open Shared
 
 [<AutoOpen>]
@@ -408,3 +408,4 @@ module Target =
         }
 
 Target.run()
+
