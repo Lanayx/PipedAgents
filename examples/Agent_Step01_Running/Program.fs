@@ -3,9 +3,9 @@
 open System
 open System.ClientModel
 open System.ClientModel.Primitives
+open FunAgents.MAF
 open OpenAI.Chat
 open Shared
-open OpenAI
 open FunAgents.MAF.OpenAI
 
 module BaseLine =
@@ -15,14 +15,14 @@ module BaseLine =
             Environment.GetEnvironmentVariable("OPENAI_API_KEY")
         )
         let httpClient = getLoggingHttpClient()
-        let options = OpenAIClientOptions(
+        let options = OpenAI.OpenAIClientOptions(
             Transport = new HttpClientPipelineTransport(httpClient),
             Endpoint = Uri(Environment.GetEnvironmentVariable "OPENAI_BASE_URL")
         )
         // httpClient.DefaultRequestHeaders.Add("Authorization", "Bearer " + Environment.GetEnvironmentVariable "OPENAI_API_KEY")
         // let models = httpClient.GetStringAsync(Uri((Environment.GetEnvironmentVariable "OPENAI_BASE_URL") + "/models")).GetAwaiter().GetResult()
 
-        let client = OpenAIClient(key, options)
+        let client = OpenAI.OpenAIClient(key, options)
         let responseClient = client.GetChatClient(Environment.GetEnvironmentVariable "MODEL_ID")
         let agent = responseClient.CreateAIAgent(
             instructions = "You are good at telling jokes. Write jokes with all uppercase letters.",
