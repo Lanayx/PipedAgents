@@ -14,6 +14,7 @@
     <Project Path="examples/Agent_Step14_Middleware/Agent_Step14_Middleware.fsproj" />
     <Project Path="examples/Agent_Step16_ChatReduction/Agent_Step16_ChatReduction.fsproj" />
     <Project Path="examples/Shared/Shared.fsproj" />
+    <Project Path="examples/Workflows_Step01_ExecutorsAndEdges/Workflows_Step01_ExecutorsAndEdges.fsproj" />
   </Folder>
   <Folder Name="/src/">
     <Project Path="src/PipedAgents.MAF.OpenAI/PipedAgents.MAF.OpenAI.fsproj" />
