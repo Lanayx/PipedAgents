@@ -5,6 +5,7 @@ open System
 open System.Threading.Tasks
 open Microsoft.Agents.AI.Workflows
 open Shared
+open PipedAgents.MAF
 
 module BaseLine =
 
@@ -33,8 +34,28 @@ module BaseLine =
 
 
 module Target =
+    type ReverseTextNode() =
+        inherit Executor<string, string>("ReverseTextNode")
+        override this.HandleAsync(message: string, context, cancellationToken) =
+            ValueTask.FromResult(String.Concat(message |> Seq.rev))
 
     let run() =
-        ()
+        let uppercaseFunc (s: string) = s.ToUpperInvariant()
+        let uppercaseNode = GetNode(uppercaseFunc, "UppercaseNode")
+        let reverseTextNode = GetNode(ReverseTextNode())
+        let workflow =
+            Workflow<_,_>(uppercaseNode) {
+                uppercaseNode ==> reverseTextNode
+                return reverseTextNode
+            }
+        +task {
+            use! run = InProcessExecution.RunAsync(workflow, "Hello, World!")
+            for evt in run.NewEvents do
+                match evt with
+                | :? ExecutorCompletedEvent as executorComplete ->
+                    Console.WriteLine($"{executorComplete.ExecutorId}: {executorComplete.Data}")
+                | _ -> ()
+        }
 
-BaseLine.run()
+
+Target.run()
