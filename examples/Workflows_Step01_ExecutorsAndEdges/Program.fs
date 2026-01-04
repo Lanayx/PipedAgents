@@ -44,7 +44,7 @@ module Target =
         let uppercaseNode = GetNode(uppercaseFunc, "UppercaseNode")
         let reverseTextNode = GetNode(ReverseTextNode())
         let workflow =
-            Workflow<_,_>(uppercaseNode) {
+            Workflow(uppercaseNode) {
                 uppercaseNode ==> reverseTextNode
                 return reverseTextNode
             }
