@@ -12,6 +12,7 @@ open Microsoft.Agents.AI.Workflows
 open Microsoft.Extensions.AI
 open Shared.Logging
 open PipedAgents.MAF
+open PipedAgents.MAF.Workflows
 open PipedAgents.MAF.OpenAI
 open Workflows_Step02_EdgeCondition
 open FSharp.Control
@@ -159,73 +160,90 @@ module BaseLine =
         }
 
 module Target =
-    // type SpamDetectionExecutor(spamDetectionAgent: AIAgent) =
-    //     inherit Executor<ChatMessage, DetectionResult>("SpamDetectionExecutor")
-    //     override this.HandleAsync(message: ChatMessage, context: IWorkflowContext, cancellationToken) =
-    //         task {
-    //             let newEmail = Email(EmailId = Guid.NewGuid().ToString("N"), EmailContent = message.Text)
-    //             do! context.QueueStateUpdateAsync(newEmail.EmailId, newEmail, scopeName = EmailStateConstants.EmailStateScope, cancellationToken = cancellationToken).AsTask()
-    //             let! response = spamDetectionAgent.RunAsync(message.Text, cancellationToken = cancellationToken)
-    //             let detectionResult = JsonSerializer.Deserialize<DetectionResult>(response.Text)
-    //             detectionResult.EmailId <- newEmail.EmailId
-    //             return detectionResult
-    //         } |> ValueTask<DetectionResult>
-    //
-    // type EmailAssistantExecutor(emailAssistantAgent: AIAgent) =
-    //     inherit Executor<DetectionResult, EmailResponse>("EmailAssistantExecutor")
-    //     override this.HandleAsync(message: DetectionResult, context: IWorkflowContext, cancellationToken) =
-    //         task {
-    //             if message.IsSpam then failwith "This executor should only handle non-spam messages."
-    //             let! email = context.ReadStateAsync<Email>(message.EmailId, scopeName = EmailStateConstants.EmailStateScope, cancellationToken = cancellationToken)
-    //             if email |> isNull then failwith "Email not found."
-    //             let! response = emailAssistantAgent.RunAsync(email.EmailContent, cancellationToken = cancellationToken)
-    //             return JsonSerializer.Deserialize<EmailResponse>(response.Text)
-    //         } |> ValueTask<EmailResponse>
-    //
-    // let sendEmailExecutor (message: EmailResponse) =
-    //     $"Email sent: {message.Response}"
-    //
-    // let handleSpamExecutor (message: DetectionResult) =
-    //     if message.IsSpam then
-    //         $"Email marked as spam: {message.Reason}"
-    //     else
-    //         failwith "This executor should only handle spam messages."
-    //
-    // let run() =
-    //     use client = Client.ForChatCompletionsAPI(Environment.GetEnvironmentVariable "MODEL_ID")
-    //     let spamDetectionAgent = client.CreateAgent(AgentOptions(
-    //         Instructions = "You are a spam detection assistant that identifies spam emails.",
-    //         ResponseFormat = ChatResponseFormat.ForJsonSchema<DetectionResult>()
-    //     ))
-    //     let emailAssistantAgent = client.CreateAgent(AgentOptions(
-    //         Instructions = "You are an email assistant that helps users draft responses to emails with professionalism.",
-    //         ResponseFormat = ChatResponseFormat.ForJsonSchema<EmailResponse>()
-    //     ))
-    //     let spamDetectionNode = GetNode(SpamDetectionExecutor(spamDetectionAgent))
-    //     let emailAssistantNode = GetNode(EmailAssistantExecutor(emailAssistantAgent))
-    //     let sendEmailNode = GetNode(sendEmailExecutor, "SendEmailExecutor")
-    //     let handleSpamNode = GetNode(handleSpamExecutor, "HandleSpamExecutor")
-    //     let spamCondition expectedResult (detectionResult: DetectionResult) =
-    //         detectionResult.IsSpam = expectedResult
-    //
-    //     let workflow =
-    //         Workflow(spamDetectionNode) {
-    //             spamDetectionNode =?> (emailAssistantNode, spamCondition false)
-    //             spamDetectionNode =?> (handleSpamNode, spamCondition true)
-    //             emailAssistantNode ==> sendEmailNode
-    //             return handleSpamNode
-    //             return sendEmailNode
-    //         }
-    //
-    //     +task {
-    //         use! run = InProcessExecution.StreamAsync(workflow, ChatMessage(ChatRole.User, Emails.spam))
-    //         let! _ = run.TrySendMessageAsync(TurnToken(emitEvents = true))
-    //         for evt in run.WatchStreamAsync() do
-    //             match evt with
-    //             | :? WorkflowOutputEvent as outputEvent ->
-    //                 Console.WriteLine($"{outputEvent}")
-    //             | _ -> ()
-    //     }
-    ()
+    type SpamDetectionExecutor(spamDetectionAgent: AIAgent) =
+        inherit Executor<ChatMessage, DetectionResult>("SpamDetectionExecutor")
+        override this.HandleAsync(message: ChatMessage, context: IWorkflowContext, cancellationToken) =
+            task {
+                let newEmail = Email(EmailId = Guid.NewGuid().ToString("N"), EmailContent = message.Text)
+                do! context.QueueStateUpdateAsync(newEmail.EmailId, newEmail, scopeName = EmailStateConstants.EmailStateScope, cancellationToken = cancellationToken).AsTask()
+                let! response = spamDetectionAgent.RunAsync(message.Text, cancellationToken = cancellationToken)
+                let detectionResult = JsonSerializer.Deserialize<DetectionResult>(response.Text)
+                detectionResult.EmailId <- newEmail.EmailId
+                return detectionResult
+            } |> ValueTask<DetectionResult>
 
-BaseLine.run()
+    type EmailAssistantExecutor(emailAssistantAgent: AIAgent) =
+        inherit Executor<DetectionResult, EmailResponse>("EmailAssistantExecutor")
+        override this.HandleAsync(message: DetectionResult, context: IWorkflowContext, cancellationToken) =
+            task {
+                if message.spamDecision <> SpamDecision.NotSpam then
+                    failwith "This executor should only handle non-spam messages."
+                let! email = context.ReadStateAsync<Email>(message.EmailId, scopeName = EmailStateConstants.EmailStateScope, cancellationToken = cancellationToken)
+                if email |> isNull then failwith "Email not found."
+                let! response = emailAssistantAgent.RunAsync(email.EmailContent, cancellationToken = cancellationToken)
+                return JsonSerializer.Deserialize<EmailResponse>(response.Text)
+            } |> ValueTask<EmailResponse>
+
+    type HandleUncertainExecutor() =
+        inherit Executor<DetectionResult, string>("HandleUncertainExecutor")
+        override this.HandleAsync(message: DetectionResult, context, cancellationToken) =
+            task {
+                if message.spamDecision = SpamDecision.Uncertain then
+                    let! email = context.ReadStateAsync<Email>(message.EmailId, EmailStateConstants.EmailStateScope, cancellationToken)
+                    return $"Email marked as uncertain: {message.Reason}. Email content: {email.EmailContent}"
+                else
+                    return failwith "This executor should only handle uncertain messages."
+            } |> ValueTask<string>
+
+    let sendEmailExecutor (message: EmailResponse) =
+        $"Email sent: {message.Response}"
+
+    let handleSpamExecutor (message: DetectionResult) =
+        if message.spamDecision = SpamDecision.Spam then
+            $"Email marked as spam: {message.Reason}"
+        else
+            failwith "This executor should only handle spam messages."
+
+    let run() =
+        use client = Client.ForChatCompletionsAPI(Environment.GetEnvironmentVariable "MODEL_ID")
+        let spamDetectionAgent = client.CreateAgent(AgentOptions(
+            Instructions = "You are a spam detection assistant that identifies spam emails.",
+            ResponseFormat = ChatResponseFormat.ForJsonSchema<DetectionResult>()
+        ))
+        let emailAssistantAgent = client.CreateAgent(AgentOptions(
+            Instructions = "You are an email assistant that helps users draft responses to emails with professionalism.",
+            ResponseFormat = ChatResponseFormat.ForJsonSchema<EmailResponse>()
+        ))
+        let spamDetectionNode = GetNode(SpamDetectionExecutor(spamDetectionAgent))
+        let emailAssistantNode = GetNode(EmailAssistantExecutor(emailAssistantAgent))
+        let sendEmailNode = GetNode(sendEmailExecutor, "SendEmailExecutor")
+        let handleSpamNode = GetNode(handleSpamExecutor, "HandleSpamExecutor")
+        let handleUncertainNode = GetNode(HandleUncertainExecutor())
+        let getCondition expectedResult (detectionResult: DetectionResult) =
+            detectionResult.spamDecision = expectedResult
+
+        let workflow =
+            Workflow(spamDetectionNode) {
+                switch spamDetectionNode [
+                    case (getCondition SpamDecision.NotSpam) emailAssistantNode
+                    case (getCondition SpamDecision.Spam) handleSpamNode
+                    defaultCase handleUncertainNode
+                ]
+                emailAssistantNode ==> sendEmailNode
+                return handleSpamNode
+                return sendEmailNode
+                return handleUncertainNode
+            }
+
+        +task {
+            use! run = InProcessExecution.StreamAsync(workflow, ChatMessage(ChatRole.User, Emails.spam))
+            let! _ = run.TrySendMessageAsync(TurnToken(emitEvents = true))
+            for evt in run.WatchStreamAsync() do
+                match evt with
+                | :? WorkflowOutputEvent as outputEvent ->
+                    Console.WriteLine($"{outputEvent}")
+                | _ -> ()
+        }
+
+
+Target.run()

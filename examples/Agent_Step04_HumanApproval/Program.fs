@@ -8,6 +8,8 @@ open Microsoft.Agents.AI
 open Microsoft.Extensions.AI
 open OpenAI.Responses
 open Shared
+open PipedAgents.MAF
+open PipedAgents.MAF.OpenAI
 
 module Baseline =
 
@@ -65,8 +67,6 @@ module Baseline =
 
 
 module Target =
-    open PipedAgents.MAF.OpenAI
-    open PipedAgents.MAF
 
     [<Description("Get the weather for a given location.")>]
     let getWeather ([<Description("The location to get the weather for.")>] location: string) : string =

@@ -1,8 +1,6 @@
-namespace PipedAgents.MAF
+namespace PipedAgents.MAF.Workflows
 
 open System
-open System.Runtime.CompilerServices
-open Microsoft.Agents.AI
 open Microsoft.Agents.AI.Workflows
 
 type Node<'TIn, 'TOut>(binding: ExecutorBinding) =
@@ -15,6 +13,12 @@ type EdgeType<'T> =
     | Switch of fromNode:Node<obj, 'T> * switch:Action<SwitchBuilder>
     | FanOut of fromNode:Node<obj, 'T> * toNode:Node<'T, obj> seq
     | FanIn of fromNode:Node<obj, 'T> seq * toNode:Node<'T, obj>
+
+[<RequireQualifiedAccess>]
+type CaseType<'T> =
+    | Case of condition:('T -> bool) * executor:Node<'T, obj>
+    | DefaultCase of Node<'T, obj>
+
 [<AutoOpen>]
 module NodeOperators =
     let inline private boxFromNode (n: Node<'a, 'b>) = Node<obj, 'b>(n.Binding)
@@ -29,12 +33,31 @@ module NodeOperators =
     let inline (>>=) (fromNodes : Node<'a, 'b> seq) (toNode: Node<'b, 'c>) =
         EdgeType.FanIn(fromNodes |> Seq.map boxFromNode, boxToNode toNode)
 
+
+
+    let defaultCase (value : Node<'T1,'T2>) =
+        CaseType.DefaultCase (boxToNode value)
+    let case (condition: 'T1 -> bool) (value : Node<'T1,'T2>) =
+        CaseType.Case (condition, boxToNode value)
+    let inline private switchInner (cases: CaseType<'a> seq) =
+        fun (switchBuilder: SwitchBuilder) ->
+            for c in cases do
+                match c with
+                | CaseType.Case (condition, executor) ->
+                    switchBuilder.AddCase(condition, [| executor.Binding |]) |> ignore
+                | CaseType.DefaultCase executor ->
+                    switchBuilder.WithDefault([| executor.Binding  |]) |> ignore
+    let switch (fromNode : Node<'a, 'b>) (cases: CaseType<'b> seq) =
+        EdgeType.Switch(boxFromNode fromNode, switchInner cases)
+
+
 [<AutoOpen; AbstractClass; Sealed>]
 type NodeOperations =
     static member GetNode (value : Func<'T1,'T2>, id: string, ?options: ExecutorOptions, ?threadsafe: bool) : Node<'T1, 'T2> =
         Node(value.BindAsExecutor(id, (options |> Option.toObj), (threadsafe |> Option.defaultValue false)))
     static member GetNode (value : Executor<'T1,'T2>) : Node<'T1, 'T2> =
         Node(value.BindExecutor())
+
 
 type WorkflowBuilderInner<'TFirstIn, 'TFirstOut, 'TOut>(node: Node<'TFirstIn, 'TFirstOut>) =
 

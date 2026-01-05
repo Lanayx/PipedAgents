@@ -5,7 +5,7 @@ open System
 open System.Threading.Tasks
 open Microsoft.Agents.AI.Workflows
 open Shared
-open PipedAgents.MAF
+open PipedAgents.MAF.Workflows
 
 module BaseLine =
 

@@ -12,6 +12,7 @@ open Microsoft.Agents.AI.Workflows
 open Microsoft.Extensions.AI
 open Shared.Logging
 open PipedAgents.MAF
+open PipedAgents.MAF.Workflows
 open PipedAgents.MAF.OpenAI
 open Workflows_Step02_EdgeCondition
 open FSharp.Control
