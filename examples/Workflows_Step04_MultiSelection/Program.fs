@@ -60,100 +60,100 @@ type EmailSummary() =
     [<JsonPropertyName("summary")>]
     member val Summary = "" with get, set
 
-module BaseLine =
+type EmailAnalysisExecutor(emailAnalysisAgent: AIAgent) =
+    inherit Executor<ChatMessage, AnalysisResult>("EmailAnalysisExecutor")
+    override this.HandleAsync(message: ChatMessage, context: IWorkflowContext, cancellationToken) =
+        task {
+            let newEmail = Email(EmailId = Guid.NewGuid().ToString("N"), EmailContent = message.Text)
+            do! context.QueueStateUpdateAsync(newEmail.EmailId, newEmail,
+                scopeName = EmailStateConstants.EmailStateScope, cancellationToken = cancellationToken)
+            let! response = emailAnalysisAgent.RunAsync(message.Text, cancellationToken = cancellationToken)
+            let AnalysisResult = JsonSerializer.Deserialize<AnalysisResult>(response.Text)
+            AnalysisResult.EmailId <- newEmail.EmailId
+            AnalysisResult.EmailLength <- newEmail.EmailContent.Length;
+            return AnalysisResult
+        } |> ValueTask<AnalysisResult>
 
-    type EmailAnalysisExecutor(emailAnalysisAgent: AIAgent) =
-        inherit Executor<ChatMessage, AnalysisResult>("EmailAnalysisExecutor")
-        override this.HandleAsync(message: ChatMessage, context: IWorkflowContext, cancellationToken) =
-            task {
-                let newEmail = Email(EmailId = Guid.NewGuid().ToString("N"), EmailContent = message.Text)
-                do! context.QueueStateUpdateAsync(newEmail.EmailId, newEmail,
-                    scopeName = EmailStateConstants.EmailStateScope, cancellationToken = cancellationToken)
-                let! response = emailAnalysisAgent.RunAsync(message.Text, cancellationToken = cancellationToken)
-                let AnalysisResult = JsonSerializer.Deserialize<AnalysisResult>(response.Text)
-                AnalysisResult.EmailId <- newEmail.EmailId
-                AnalysisResult.EmailLength <- newEmail.EmailContent.Length;
-                return AnalysisResult
-            } |> ValueTask<AnalysisResult>
+type EmailAssistantExecutor(emailAssistantAgent: AIAgent) =
+    inherit Executor<AnalysisResult, EmailResponse>("EmailAssistantExecutor")
+    override this.HandleAsync(message: AnalysisResult, context: IWorkflowContext, cancellationToken) =
+        task {
+            match message.spamDecision with
+            | SpamDecision.NotSpam ->
+                let! email = context.ReadStateAsync<Email>(message.EmailId, scopeName = EmailStateConstants.EmailStateScope, cancellationToken = cancellationToken)
+                let! response = emailAssistantAgent.RunAsync(email.EmailContent, cancellationToken = cancellationToken)
+                return JsonSerializer.Deserialize<EmailResponse>(response.Text)
+            | _ ->
+                return failwith "This executor should only handle non-spam messages."
+        } |> ValueTask<EmailResponse>
 
-    type EmailAssistantExecutor(emailAssistantAgent: AIAgent) =
-        inherit Executor<AnalysisResult, EmailResponse>("EmailAssistantExecutor")
-        override this.HandleAsync(message: AnalysisResult, context: IWorkflowContext, cancellationToken) =
-            task {
-                match message.spamDecision with
-                | SpamDecision.NotSpam ->
-                    let! email = context.ReadStateAsync<Email>(message.EmailId, scopeName = EmailStateConstants.EmailStateScope, cancellationToken = cancellationToken)
-                    let! response = emailAssistantAgent.RunAsync(email.EmailContent, cancellationToken = cancellationToken)
-                    return JsonSerializer.Deserialize<EmailResponse>(response.Text)
-                | _ ->
-                    return failwith "This executor should only handle non-spam messages."
-            } |> ValueTask<EmailResponse>
+type EmailSummaryExecutor(emailSummaryAgent: AIAgent) =
+    inherit Executor<AnalysisResult, AnalysisResult>("EmailSummaryExecutor")
+    override this.HandleAsync(message: AnalysisResult, context: IWorkflowContext, cancellationToken) =
+        task {
+            // Read the email content from the shared states
+            let! email = context.ReadStateAsync<Email>(message.EmailId, EmailStateConstants.EmailStateScope, cancellationToken)
+            // Invoke the agent
+            let! response = emailSummaryAgent.RunAsync(email.EmailContent, cancellationToken = cancellationToken);
+            let emailSummary = JsonSerializer.Deserialize<EmailSummary>(response.Text)
+            message.EmailSummary <- emailSummary.Summary
 
-    type EmailSummaryExecutor(emailSummaryAgent: AIAgent) =
-        inherit Executor<AnalysisResult, AnalysisResult>("EmailSummaryExecutor")
-        override this.HandleAsync(message: AnalysisResult, context: IWorkflowContext, cancellationToken) =
-            task {
-                // Read the email content from the shared states
+            return message
+        } |> ValueTask<AnalysisResult>
+
+type SendEmailExecutor() =
+    inherit Executor<EmailResponse, string>("SendEmailExecutor")
+    override this.HandleAsync(message: EmailResponse, context, cancellationToken) =
+        $"Email sent: {message.Response}" |> ValueTask<string>
+
+type HandleSpamExecutor() =
+    inherit Executor<AnalysisResult, string>("HandleSpamExecutor")
+    override this.HandleAsync(message: AnalysisResult, context, cancellationToken) =
+        task {
+            match message.spamDecision with
+            | SpamDecision.Spam ->
+                return $"Email marked as spam: {message.Reason}"
+            | _ ->
+                return failwith "This executor should only handle spam messages."
+        } |> ValueTask<string>
+
+type HandleUncertainExecutor() =
+    inherit Executor<AnalysisResult, string>("HandleUncertainExecutor")
+    override this.HandleAsync(message: AnalysisResult, context, cancellationToken) =
+        task {
+            if message.spamDecision = SpamDecision.Uncertain then
                 let! email = context.ReadStateAsync<Email>(message.EmailId, EmailStateConstants.EmailStateScope, cancellationToken)
-                // Invoke the agent
-                let! response = emailSummaryAgent.RunAsync(email.EmailContent, cancellationToken = cancellationToken);
-                let emailSummary = JsonSerializer.Deserialize<EmailSummary>(response.Text)
-                message.EmailSummary <- emailSummary.Summary
+                return $"Email marked as uncertain: {message.Reason}. Email content: {email.EmailContent}"
+            else
+                return failwith "This executor should only handle uncertain messages."
+        } |> ValueTask<string>
 
-                return message
-            } |> ValueTask<AnalysisResult>
+/// <summary>
+/// A custom workflow event for database operations.
+/// </summary>
+/// <param name="message">The message associated with the event</param>
+type DatabaseEvent(message: string) =
+    inherit WorkflowEvent(message)
 
-    type SendEmailExecutor() =
-        inherit Executor<EmailResponse>("SendEmailExecutor")
-        override this.HandleAsync(message: EmailResponse, context, cancellationToken) =
-            context.YieldOutputAsync($"Email sent: {message.Response}", cancellationToken)
+type DatabaseAccessExecutor() =
+    inherit Executor<AnalysisResult, unit>("DatabaseAccessExecutor")
+    override this.HandleAsync(message: AnalysisResult, context, cancellationToken) =
+        task {
+            // 1. Save the email content
+            let! _  = context.ReadStateAsync<Email>(message.EmailId, EmailStateConstants.EmailStateScope, cancellationToken);
+            do! Task.Delay(100, cancellationToken) // Simulate database access delay
 
-    type HandleSpamExecutor() =
-        inherit Executor<AnalysisResult>("HandleSpamExecutor")
-        override this.HandleAsync(message: AnalysisResult, context, cancellationToken) =
-            task {
-                match message.spamDecision with
-                | SpamDecision.Spam ->
-                    do! context.YieldOutputAsync($"Email marked as spam: {message.Reason}", cancellationToken)
-                | _ ->
-                    failwith "This executor should only handle spam messages."
-            } |> ValueTask
+            // 2. Save analysis result
+            do! Task.Delay(100, cancellationToken) // Simulate processing delay
 
-    type HandleUncertainExecutor() =
-        inherit Executor<AnalysisResult>("HandleUncertainExecutor")
-        override this.HandleAsync(message: AnalysisResult, context, cancellationToken) =
-            task {
-                if message.spamDecision = SpamDecision.Uncertain then
-                    let! email = context.ReadStateAsync<Email>(message.EmailId, EmailStateConstants.EmailStateScope, cancellationToken)
-                    do! context.YieldOutputAsync($"Email marked as uncertain: {message.Reason}. Email content: {email.EmailContent}", cancellationToken)
-                else
-                    failwith "This executor should only handle uncertain messages."
-            } |> ValueTask
+            // Not using the `WorkflowCompletedEvent` because this is not the end of the workflow.
+            // The end of the workflow is signaled by the `SendEmailExecutor` or the `HandleUnknownExecutor`.
+            return! context.AddEventAsync(DatabaseEvent($"Email {message.EmailId} saved to database."), cancellationToken)
+        } |> ValueTask<unit>
 
-    /// <summary>
-    /// A custom workflow event for database operations.
-    /// </summary>
-    /// <param name="message">The message associated with the event</param>
-    type DatabaseEvent(message: string) =
-        inherit WorkflowEvent(message)
+let LongEmailThreshold = 100
 
-    type DatabaseAccessExecutor() =
-        inherit Executor<AnalysisResult>("DatabaseAccessExecutor")
-        override this.HandleAsync(message: AnalysisResult, context, cancellationToken) =
-            task {
-                // 1. Save the email content
-                let! _  = context.ReadStateAsync<Email>(message.EmailId, EmailStateConstants.EmailStateScope, cancellationToken);
-                do! Task.Delay(100, cancellationToken) // Simulate database access delay
-
-                // 2. Save analysis result
-                do! Task.Delay(100, cancellationToken) // Simulate processing delay
-
-                // Not using the `WorkflowCompletedEvent` because this is not the end of the workflow.
-                // The end of the workflow is signaled by the `SendEmailExecutor` or the `HandleUnknownExecutor`.
-                return! context.AddEventAsync(DatabaseEvent($"Email {message.EmailId} saved to database."), cancellationToken)
-            } |> ValueTask
-
-    let LongEmailThreshold = 100
+module BaseLine =
 
     /// <summary>
     /// Creates a partitioner for routing messages based on the analysis result.
@@ -235,53 +235,10 @@ module BaseLine =
         }
 
 module Target =
-    type SpamDetectionExecutor(spamDetectionAgent: AIAgent) =
-        inherit Executor<ChatMessage, AnalysisResult>("SpamDetectionExecutor")
-        override this.HandleAsync(message: ChatMessage, context: IWorkflowContext, cancellationToken) =
-            task {
-                let newEmail = Email(EmailId = Guid.NewGuid().ToString("N"), EmailContent = message.Text)
-                do! context.QueueStateUpdateAsync(newEmail.EmailId, newEmail, scopeName = EmailStateConstants.EmailStateScope, cancellationToken = cancellationToken).AsTask()
-                let! response = spamDetectionAgent.RunAsync(message.Text, cancellationToken = cancellationToken)
-                let AnalysisResult = JsonSerializer.Deserialize<AnalysisResult>(response.Text)
-                AnalysisResult.EmailId <- newEmail.EmailId
-                return AnalysisResult
-            } |> ValueTask<AnalysisResult>
-
-    type EmailAssistantExecutor(emailAssistantAgent: AIAgent) =
-        inherit Executor<AnalysisResult, EmailResponse>("EmailAssistantExecutor")
-        override this.HandleAsync(message: AnalysisResult, context: IWorkflowContext, cancellationToken) =
-            task {
-                if message.spamDecision <> SpamDecision.NotSpam then
-                    failwith "This executor should only handle non-spam messages."
-                let! email = context.ReadStateAsync<Email>(message.EmailId, scopeName = EmailStateConstants.EmailStateScope, cancellationToken = cancellationToken)
-                if email |> isNull then failwith "Email not found."
-                let! response = emailAssistantAgent.RunAsync(email.EmailContent, cancellationToken = cancellationToken)
-                return JsonSerializer.Deserialize<EmailResponse>(response.Text)
-            } |> ValueTask<EmailResponse>
-
-    type HandleUncertainExecutor() =
-        inherit Executor<AnalysisResult, string>("HandleUncertainExecutor")
-        override this.HandleAsync(message: AnalysisResult, context, cancellationToken) =
-            task {
-                if message.spamDecision = SpamDecision.Uncertain then
-                    let! email = context.ReadStateAsync<Email>(message.EmailId, EmailStateConstants.EmailStateScope, cancellationToken)
-                    return $"Email marked as uncertain: {message.Reason}. Email content: {email.EmailContent}"
-                else
-                    return failwith "This executor should only handle uncertain messages."
-            } |> ValueTask<string>
-
-    let sendEmailExecutor (message: EmailResponse) =
-        $"Email sent: {message.Response}"
-
-    let handleSpamExecutor (message: AnalysisResult) =
-        if message.spamDecision = SpamDecision.Spam then
-            $"Email marked as spam: {message.Reason}"
-        else
-            failwith "This executor should only handle spam messages."
 
     let run() =
         use client = Client.ForChatCompletionsAPI(Environment.GetEnvironmentVariable "MODEL_ID")
-        let spamDetectionAgent = client.CreateAgent(AgentOptions(
+        let emailAnalysisAgent = client.CreateAgent(AgentOptions(
             Instructions = "You are a spam detection assistant that identifies spam emails.",
             ResponseFormat = ChatResponseFormat.ForJsonSchema<AnalysisResult>()
         ))
@@ -289,36 +246,63 @@ module Target =
             Instructions = "You are an email assistant that helps users draft responses to emails with professionalism.",
             ResponseFormat = ChatResponseFormat.ForJsonSchema<EmailResponse>()
         ))
-        let spamDetectionNode = GetNode(SpamDetectionExecutor(spamDetectionAgent))
+        let summarizerAgent = client.CreateAgent(AgentOptions(
+            Instructions = "You are an assistant that helps users summarize emails.",
+            ResponseFormat = ChatResponseFormat.ForJsonSchema<EmailSummary>()
+        ))
+        let emailAnalysisNode = GetNode(EmailAnalysisExecutor(emailAnalysisAgent))
         let emailAssistantNode = GetNode(EmailAssistantExecutor(emailAssistantAgent))
-        let sendEmailNode = GetNode(sendEmailExecutor, "SendEmailExecutor")
-        let handleSpamNode = GetNode(handleSpamExecutor, "HandleSpamExecutor")
+        let emailSummaryNode = GetNode(EmailSummaryExecutor(summarizerAgent))
+        let sendEmailNode = GetNode(SendEmailExecutor())
+        let handleSpamNode = GetNode(HandleSpamExecutor())
         let handleUncertainNode = GetNode(HandleUncertainExecutor())
-        let getCondition expectedResult (AnalysisResult: AnalysisResult) =
-            AnalysisResult.spamDecision = expectedResult
+        let databaseAccessNode = GetNode(DatabaseAccessExecutor())
+
+        let getTargetAssigner (analysisResult: AnalysisResult) _ =
+            if isNull (box analysisResult) then
+                raise (InvalidOperationException("Invalid analysis result."))
+            seq {
+                match analysisResult.spamDecision with
+                | SpamDecision.Spam ->
+                    yield 0
+                | SpamDecision.NotSpam ->
+                    yield 1 // Route to the email assistant
+                    if analysisResult.EmailLength > LongEmailThreshold then
+                        yield 2 // Route to the email summarizer too
+                | _ ->
+                    yield 3
+            }
 
         let workflow =
-            Workflow(spamDetectionNode) {
-                spamDetectionNode =>> [
+            Workflow(emailAnalysisNode) {
+                emailAnalysisNode =?>> ([
                     handleSpamNode |> boxOut
                     emailAssistantNode |> boxOut
+                    emailSummaryNode |> boxOut
                     handleUncertainNode |> boxOut
-                ]
+                ], getTargetAssigner)
                 emailAssistantNode ==> sendEmailNode
-                return handleSpamNode
-                return sendEmailNode
-                return handleUncertainNode
+                emailAnalysisNode =?> (databaseAccessNode, fun analysisResult ->
+                    analysisResult.EmailLength <= LongEmailThreshold)
+                emailSummaryNode ==> databaseAccessNode
+                return [
+                    handleSpamNode |> boxIn
+                    sendEmailNode |> boxIn
+                    handleUncertainNode |> boxIn
+                ]
             }
 
         +task {
-            use! run = InProcessExecution.StreamAsync(workflow, ChatMessage(ChatRole.User, Emails.spam))
+            use! run = InProcessExecution.StreamAsync(workflow, ChatMessage(ChatRole.User, Emails.legitimate))
             let! _ = run.TrySendMessageAsync(TurnToken(emitEvents = true))
             for evt in run.WatchStreamAsync() do
                 match evt with
                 | :? WorkflowOutputEvent as outputEvent ->
-                    Console.WriteLine($"{outputEvent}")
+                    Console.WriteLine outputEvent
+                | :? DatabaseEvent as databaseEvent ->
+                    Console.WriteLine databaseEvent
                 | _ -> ()
         }
 
 
-BaseLine.run()
+Target.run()

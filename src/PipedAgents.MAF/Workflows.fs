@@ -48,9 +48,9 @@ module NodeOperators =
     /// Creates a fan-out edge from one node to multiple nodes.
     let inline (=>>) (fromNode : Node<'a, 'b>) (toNodes: Node<'b, 'c> seq) =
         EdgeType.FanOut(boxIn fromNode, toNodes |> Seq.map boxOut)
-    /// Creates a fan-out edge from one node to multiple nodes based on a condition. (value -> target count -> target indices)
-    let inline (=?>>) (fromNode : Node<'a, 'b>) (toNodes: Node<'b, 'c> seq, condition: 'b -> int -> int seq) =
-        EdgeType.FanOutCond(boxIn fromNode, toNodes |> Seq.map boxOut, condition)
+    /// Creates a fan-out edge from one node to multiple nodes based on a assigner. (value -> target count -> target indices)
+    let inline (=?>>) (fromNode : Node<'a, 'b>) (toNodes: Node<'b, 'c> seq, assigner: 'b -> int -> int seq) =
+        EdgeType.FanOutCond(boxIn fromNode, toNodes |> Seq.map boxOut, assigner)
     /// Creates a fan-in edge from multiple nodes to one node.
     let inline (>>=) (fromNodes : Node<'a, 'b> seq) (toNode: Node<'b, 'c>) =
         EdgeType.FanIn(fromNodes |> Seq.map boxIn, boxOut toNode)
@@ -86,6 +86,8 @@ type WorkflowBuilderInner<'TFirstIn, 'TFirstOut, 'TOut>(node: Node<'TFirstIn, 'T
     member inline _.Combine((), ()) = ()
     member _.Return(toNode: Node<_, 'TOut>) =
         workflow.WithOutputFrom(toNode.Binding) |> ignore
+    member _.Return(toNodes: Node<_, 'TOut> seq) =
+        workflow.WithOutputFrom(toNodes |> Seq.map _.Binding |> Seq.toArray) |> ignore
     member _.Run(()) =
         workflow.Build()
 
