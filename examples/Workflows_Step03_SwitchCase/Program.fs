@@ -224,7 +224,7 @@ module Target =
 
         let workflow =
             Workflow(spamDetectionNode) {
-                switch spamDetectionNode [
+                spamDetectionNode =|> [
                     case (getCondition SpamDecision.NotSpam) emailAssistantNode
                     case (getCondition SpamDecision.Spam) handleSpamNode
                     defaultCase handleUncertainNode
