@@ -21,24 +21,22 @@ type CaseType<'T> =
 
 [<AutoOpen>]
 module NodeOperators =
-    let inline private boxFromNode (n: Node<'a, 'b>) = Node<obj, 'b>(n.Binding)
-    let inline private boxToNode (n: Node<'a, 'b>) = Node<'a, obj>(n.Binding)
+    let inline boxIn (n: Node<'a, 'b>) = Node<obj, 'b>(n.Binding)
+    let inline boxOut (n: Node<'a, 'b>) = Node<'a, obj>(n.Binding)
 
     let inline (==>) (fromNode : Node<'a, 'b>) (toNode: Node<'b, 'c>) =
         EdgeType.Direct(Node<obj, 'b>(fromNode.Binding), Node<'b, obj>(toNode.Binding))
     let inline (=?>) (fromNode : Node<'a, 'b>) (toNode: Node<'b, 'c>, condition: 'b -> bool) =
         EdgeType.Conditional(Node<obj, 'b>(fromNode.Binding), Node<'b, obj>(toNode.Binding), condition)
     let inline (=>>) (fromNode : Node<'a, 'b>) (toNodes: Node<'b, 'c> seq) =
-        EdgeType.FanOut(boxFromNode fromNode, toNodes |> Seq.map boxToNode)
+        EdgeType.FanOut(boxIn fromNode, toNodes |> Seq.map boxOut)
     let inline (>>=) (fromNodes : Node<'a, 'b> seq) (toNode: Node<'b, 'c>) =
-        EdgeType.FanIn(fromNodes |> Seq.map boxFromNode, boxToNode toNode)
-
-
+        EdgeType.FanIn(fromNodes |> Seq.map boxIn, boxOut toNode)
 
     let defaultCase (value : Node<'T1,'T2>) =
-        CaseType.DefaultCase (boxToNode value)
+        CaseType.DefaultCase (boxOut value)
     let case (condition: 'T1 -> bool) (value : Node<'T1,'T2>) =
-        CaseType.Case (condition, boxToNode value)
+        CaseType.Case (condition, boxOut value)
     let inline private switchInner (cases: CaseType<'a> seq) =
         fun (switchBuilder: SwitchBuilder) ->
             for c in cases do
@@ -48,7 +46,7 @@ module NodeOperators =
                 | CaseType.DefaultCase executor ->
                     switchBuilder.WithDefault([| executor.Binding  |]) |> ignore
     let switch (fromNode : Node<'a, 'b>) (cases: CaseType<'b> seq) =
-        EdgeType.Switch(boxFromNode fromNode, switchInner cases)
+        EdgeType.Switch(boxIn fromNode, switchInner cases)
 
 
 [<AutoOpen; AbstractClass; Sealed>]
