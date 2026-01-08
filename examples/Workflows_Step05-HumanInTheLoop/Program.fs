@@ -92,21 +92,26 @@ module Target =
         | Init
         | Hint of NumberSignal
         | Found of string
+        member this.Wrap() =
+            { Response = this }
+    and ExecutorResponseWrap = {
+        Response: ExecutorResponse
+    }
 
     let judgeExecutor targetNumber =
-        let mutable tries = 0
+        let tries = ref 0
         fun message ->
-            tries <- tries + 1
+            tries.Value <- tries.Value + 1
             if message = targetNumber then
-                Found($"{targetNumber} found in {tries} tries!")
+                Found($"{targetNumber} found in {tries.Value} tries!").Wrap()
             elif message < targetNumber then
-                Hint(NumberSignal.Below)
+                Hint(NumberSignal.Below).Wrap()
             else
-                Hint(NumberSignal.Above)
+                Hint(NumberSignal.Above).Wrap()
 
     let private handleExternalRequest (request: ExternalRequest) =
-        if request.DataIs<ExecutorResponse>() then
-            match request.DataAs<ExecutorResponse>() with
+        if request.DataIs<ExecutorResponseWrap>() then
+            match request.DataAs<ExecutorResponseWrap>().Response with
             | ExecutorResponse.Init -> "Please provide your initial guess: "
             | ExecutorResponse.Hint NumberSignal.Above -> "You previously guessed too large. Please provide a new guess: "
             | ExecutorResponse.Hint NumberSignal.Below -> "You previously guessed too small. Please provide a new guess: "
@@ -117,24 +122,25 @@ module Target =
             raise <| NotSupportedException $"Request {request.PortInfo.RequestType} is not supported"
 
     let run () =
-        let numberRequestPort = GetNode(RequestPort.Create<ExecutorResponse, int>("GuessNumber"))
-        let judgeExecutor = GetNode(judgeExecutor 42, "Judge")
+        let numberRequestPort = GetNode(RequestPort.Create<ExecutorResponseWrap, int>("GuessNumber"))
+        let judgeExecutorNode = GetNode(judgeExecutor 42, "Judge")
         let outputNode = GetNode((function
-            | Found result -> result
+            | { Response = Found result } -> result
             | _ -> failwith "Unexpected response"), "Output")
 
         let workflow =
             Workflow(numberRequestPort) {
-                numberRequestPort ==> judgeExecutor
-                judgeExecutor =|> [
-                    case _.IsHint numberRequestPort
+                numberRequestPort ==> judgeExecutorNode
+                judgeExecutorNode =|> [
+                    case _.Response.IsHint numberRequestPort
                     defaultCase outputNode
                 ]
                 return outputNode
             }
 
+        let init = ExecutorResponse.Init.Wrap()
         +task {
-            use! handle = InProcessExecution.StreamAsync(workflow, ExecutorResponse.Init)
+            use! handle = InProcessExecution.StreamAsync(workflow, init)
             use enumerator = handle.WatchStreamAsync().GetAsyncEnumerator()
             while! enumerator.MoveNextAsync() do
                 match enumerator.Current with
