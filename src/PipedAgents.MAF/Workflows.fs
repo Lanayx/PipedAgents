@@ -61,6 +61,8 @@ type NodeOperations =
         Node(value.BindAsExecutor(id, (options |> Option.toObj), (threadsafe |> Option.defaultValue false)))
     static member GetNode (value : Executor<'T1,'T2>) : Node<'T1, 'T2> =
         Node(value.BindExecutor())
+    static member GetNode (value : RequestPort<'T1,'T2>) : Node<'T1, 'T2> =
+        Node(value.BindAsExecutor())
 
 
 type WorkflowBuilderInner<'TFirstIn, 'TFirstOut, 'TOut>(node: Node<'TFirstIn, 'TFirstOut>) =

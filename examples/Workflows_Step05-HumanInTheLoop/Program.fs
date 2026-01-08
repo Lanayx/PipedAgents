@@ -5,16 +5,26 @@ open System
 open System.Threading.Tasks
 open Microsoft.Agents.AI.Workflows
 open Shared.Logging
-open PipedAgents.MAF
 open PipedAgents.MAF.Workflows
 open FSharp.Control
 
-type NumberSignal =
-    | Init
-    | Above
-    | Below
+
+let rec private readIntegerFromConsole (prompt: string) =
+    Console.Write(prompt)
+    let input = Console.ReadLine()
+    match Int32.TryParse(input) with
+    | true, value ->
+        value
+    | _ ->
+        Console.WriteLine("Invalid input. Please enter a valid integer.")
+        readIntegerFromConsole prompt
 
 module BaseLine =
+
+    type NumberSignal =
+        | Init
+        | Above
+        | Below
 
     type JudgeExecutor(targetNumber: int) =
         inherit Executor<int>("Judge")
@@ -31,16 +41,6 @@ module BaseLine =
                 else
                     do! context.SendMessageAsync(NumberSignal.Above, cancellationToken = cancellationToken)
             } |> ValueTask
-
-    let rec private readIntegerFromConsole (prompt: string) =
-        Console.Write(prompt)
-        let input = Console.ReadLine()
-        match Int32.TryParse(input) with
-        | true, value ->
-            value
-        | _ ->
-            Console.WriteLine("Invalid input. Please enter a valid integer.")
-            readIntegerFromConsole prompt
 
     let private handleExternalRequest (request: ExternalRequest) =
         if request.DataIs<NumberSignal>() then
@@ -82,9 +82,69 @@ module BaseLine =
                     ()
         }
 
-
 module Target =
-    let run () =
-        ()
 
-BaseLine.run()
+    type NumberSignal =
+        | Above
+        | Below
+
+    type ExecutorResponse =
+        | Init
+        | Hint of NumberSignal
+        | Found of string
+
+    let judgeExecutor targetNumber =
+        let mutable tries = 0
+        fun message ->
+            tries <- tries + 1
+            if message = targetNumber then
+                Found($"{targetNumber} found in {tries} tries!")
+            elif message < targetNumber then
+                Hint(NumberSignal.Below)
+            else
+                Hint(NumberSignal.Above)
+
+    let private handleExternalRequest (request: ExternalRequest) =
+        if request.DataIs<ExecutorResponse>() then
+            match request.DataAs<ExecutorResponse>() with
+            | ExecutorResponse.Init -> "Please provide your initial guess: "
+            | ExecutorResponse.Hint NumberSignal.Above -> "You previously guessed too large. Please provide a new guess: "
+            | ExecutorResponse.Hint NumberSignal.Below -> "You previously guessed too small. Please provide a new guess: "
+            | ExecutorResponse.Found _ -> raise <| NotSupportedException $"Request {request.PortInfo.RequestType} is not supported"
+            |> readIntegerFromConsole
+            |> request.CreateResponse
+        else
+            raise <| NotSupportedException $"Request {request.PortInfo.RequestType} is not supported"
+
+    let run () =
+        let numberRequestPort = GetNode(RequestPort.Create<ExecutorResponse, int>("GuessNumber"))
+        let judgeExecutor = GetNode(judgeExecutor 42, "Judge")
+        let outputNode = GetNode((function
+            | Found result -> result
+            | _ -> failwith "Unexpected response"), "Output")
+
+        let workflow =
+            Workflow(numberRequestPort) {
+                numberRequestPort ==> judgeExecutor
+                judgeExecutor =|> [
+                    case _.IsHint numberRequestPort
+                    defaultCase outputNode
+                ]
+                return outputNode
+            }
+
+        +task {
+            use! handle = InProcessExecution.StreamAsync(workflow, ExecutorResponse.Init)
+            use enumerator = handle.WatchStreamAsync().GetAsyncEnumerator()
+            while! enumerator.MoveNextAsync() do
+                match enumerator.Current with
+                | :? RequestInfoEvent as requestInputEvt ->
+                    let response = handleExternalRequest requestInputEvt.Request
+                    do! handle.SendResponseAsync(response)
+                | :? WorkflowOutputEvent as outputEvt ->
+                    Console.WriteLine($"Workflow completed with result: {outputEvt.Data}")
+                | _ ->
+                    ()
+        }
+
+Target.run()
