@@ -183,8 +183,8 @@ module Target =
         let spamCondition expectedResult (detectionResult: DetectionResult) =
             detectionResult.IsSpam = expectedResult
 
-        let workflow =
-            Workflow(spamDetectionNode) {
+        let mainWorkflow =
+            workflow(spamDetectionNode) {
                 spamDetectionNode =?> (emailAssistantNode, spamCondition false)
                 spamDetectionNode =?> (handleSpamNode, spamCondition true)
                 emailAssistantNode ==> sendEmailNode
@@ -193,7 +193,7 @@ module Target =
             }
 
         +task {
-            use! run = InProcessExecution.StreamAsync(workflow, ChatMessage(ChatRole.User, Emails.spam))
+            use! run = Workflow.Stream(mainWorkflow, ChatMessage(ChatRole.User, Emails.spam))
             let! _ = run.TrySendMessageAsync(TurnToken(emitEvents = true))
             for evt in run.WatchStreamAsync() do
                 match evt with

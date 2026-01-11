@@ -273,8 +273,8 @@ module Target =
                     yield 3
             }
 
-        let workflow =
-            Workflow(emailAnalysisNode) {
+        let mainWorkflow =
+            workflow(emailAnalysisNode) {
                 emailAnalysisNode =?>> ([
                     handleSpamNode |> boxOut
                     emailAssistantNode |> boxOut
@@ -293,9 +293,9 @@ module Target =
             }
 
         +task {
-            use! run = InProcessExecution.StreamAsync(workflow, ChatMessage(ChatRole.User, Emails.legitimate))
-            let! _ = run.TrySendMessageAsync(TurnToken(emitEvents = true))
-            for evt in run.WatchStreamAsync() do
+            use! stream = Workflow.Stream(mainWorkflow, ChatMessage(ChatRole.User, Emails.legitimate))
+            let! _ = stream.TrySendMessageAsync(TurnToken(emitEvents = true))
+            for evt in stream.WatchStreamAsync() do
                 match evt with
                 | :? WorkflowOutputEvent as outputEvent ->
                     Console.WriteLine outputEvent

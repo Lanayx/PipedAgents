@@ -4,7 +4,9 @@ open System
 open Microsoft.Agents.AI.Workflows
 
 type Node<'TIn, 'TOut>(binding: ExecutorBinding) =
-    member _.Binding = binding
+    member _.Value = binding
+type TypedWorkflow<'TIn, 'TOut>(binding: Workflow) =
+    member _.Value = binding
 
 [<RequireQualifiedAccess>]
 type CaseType<'T> =
@@ -22,8 +24,8 @@ type EdgeType<'T> =
 
 [<AutoOpen>]
 module NodeOperators =
-    let inline boxIn (n: Node<'a, 'b>) = Node<obj, 'b>(n.Binding)
-    let inline boxOut (n: Node<'a, 'b>) = Node<'a, obj>(n.Binding)
+    let inline boxIn (n: Node<'a, 'b>) = Node<obj, 'b>(n.Value)
+    let inline boxOut (n: Node<'a, 'b>) = Node<'a, obj>(n.Value)
     let inline defaultCase (value : Node<'T1,'T2>) =
         CaseType.Default (boxOut value)
     let inline case (condition: 'T1 -> bool) (value : Node<'T1,'T2>) =
@@ -33,10 +35,10 @@ module NodeOperators =
         EdgeType.Switch(boxIn fromNode, cases)
     /// Creates a direct edge from one node to another.
     let inline (==>) (fromNode : Node<'a, 'b>) (toNode: Node<'b, 'c>) =
-        EdgeType.Direct(Node<obj, 'b>(fromNode.Binding), Node<'b, obj>(toNode.Binding))
+        EdgeType.Direct(Node<obj, 'b>(fromNode.Value), Node<'b, obj>(toNode.Value))
     /// Creates a conditional edge from one node to another based on a condition.
     let inline (=?>) (fromNode : Node<'a, 'b>) (toNode: Node<'b, 'c>, condition: 'b -> bool) =
-        EdgeType.Conditional(Node<obj, 'b>(fromNode.Binding), Node<'b, obj>(toNode.Binding), condition)
+        EdgeType.Conditional(Node<obj, 'b>(fromNode.Value), Node<'b, obj>(toNode.Value), condition)
     /// Creates a fan-out edge from one node to multiple nodes.
     let inline (=>>) (fromNode : Node<'a, 'b>) (toNodes: Node<'b, 'c> seq) =
         EdgeType.FanOut(boxIn fromNode, toNodes |> Seq.map boxOut)
@@ -55,11 +57,12 @@ type NodeOperations =
         Node(value.BindExecutor())
     static member GetNode (value : RequestPort<'T1,'T2>) : Node<'T1, 'T2> =
         Node(value.BindAsExecutor())
+    static member GetNode (value : TypedWorkflow<'T1,'T2>, id: string, ?options: ExecutorOptions) : Node<'T1, 'T2> =
+        Node(value.Value.BindAsExecutor(id, (options |> Option.toObj)))
 
+type workflow<'TIn, 'TFirstOut, 'TOut>(node: Node<'TIn, 'TFirstOut>) =
 
-type WorkflowBuilderInner<'TFirstIn, 'TFirstOut, 'TOut>(node: Node<'TFirstIn, 'TFirstOut>) =
-
-    let workflow = WorkflowBuilder(node.Binding)
+    let workflow = WorkflowBuilder(node.Value)
 
     member internal this.ReduceToFanOut(source: ExecutorBinding,
                                         cases:CaseType<'T> seq) =
@@ -71,10 +74,10 @@ type WorkflowBuilderInner<'TFirstIn, 'TFirstOut, 'TOut>(node: Node<'TFirstIn, 'T
         for case in cases do
             match case with
             | CaseType.Case (condition, executor) ->
-                allExecutors.Add(executor.Binding)
+                allExecutors.Add(executor.Value)
                 regularCases.Add(condition, i)
             | CaseType.Default executor ->
-                allExecutors.Add(executor.Binding)
+                allExecutors.Add(executor.Value)
                 defaultCases.Add(i)
             i <- i + 1
         if defaultCases.Count = 0 then
@@ -93,25 +96,27 @@ type WorkflowBuilderInner<'TFirstIn, 'TFirstOut, 'TOut>(node: Node<'TFirstIn, 'T
     member this.Yield(edge: EdgeType<'T>) =
         match edge with
         | EdgeType.Direct(from, ``to``) ->
-            workflow.AddEdge(from.Binding, ``to``.Binding) |> ignore
+            workflow.AddEdge(from.Value, ``to``.Value) |> ignore
         | EdgeType.Conditional(from, ``to``, condition) ->
-            workflow.AddEdge(from.Binding, ``to``.Binding, condition) |> ignore
+            workflow.AddEdge(from.Value, ``to``.Value, condition) |> ignore
         | EdgeType.FanOut(from, tos) ->
-            workflow.AddFanOutEdge(from.Binding, tos |> Seq.map _.Binding) |> ignore
+            workflow.AddFanOutEdge(from.Value, tos |> Seq.map _.Value) |> ignore
         | EdgeType.FanOutCond(from, tos, condition) ->
-            workflow.AddFanOutEdge(from.Binding, tos |> Seq.map _.Binding, condition) |> ignore
+            workflow.AddFanOutEdge(from.Value, tos |> Seq.map _.Value, condition) |> ignore
         | EdgeType.FanIn(from, ``to``) ->
-            workflow.AddFanInEdge(from |> Seq.map _.Binding, ``to``.Binding) |> ignore
+            workflow.AddFanInEdge(from |> Seq.map _.Value, ``to``.Value) |> ignore
         | EdgeType.Switch(from, switch) ->
-            this.ReduceToFanOut(from.Binding, switch) |> ignore
+            this.ReduceToFanOut(from.Value, switch) |> ignore
     member inline _.Combine((), ()) = ()
     member _.Return(toNode: Node<_, 'TOut>) =
-        workflow.WithOutputFrom(toNode.Binding) |> ignore
+        workflow.WithOutputFrom(toNode.Value) |> ignore
     member _.Return(toNodes: Node<_, 'TOut> seq) =
-        workflow.WithOutputFrom(toNodes |> Seq.map _.Binding |> Seq.toArray) |> ignore
+        workflow.WithOutputFrom(toNodes |> Seq.map _.Value |> Seq.toArray) |> ignore
     member _.Run(()) =
-        workflow.Build()
+        workflow.Build() |> TypedWorkflow<'TIn, 'TOut>
 
-[<AutoOpen>]
-module WorkflowTopLevel =
-    let Workflow<'TFirstIn, 'TFirstOut, 'TOut> (node: Node<'TFirstIn, 'TFirstOut>) = WorkflowBuilderInner<'TFirstIn, 'TFirstOut, 'TOut>(node)
+type Workflow =
+    static member Run<'TIn, 'TOut>(workflow: TypedWorkflow<'TIn, 'TOut>, input: 'TIn, ?runId: string, ?ct: Threading.CancellationToken) =
+        InProcessExecution.RunAsync(workflow.Value, input, runId = (runId |> Option.toObj), ?cancellationToken = ct)
+    static member Stream<'TIn, 'TOut>(workflow: TypedWorkflow<'TIn, 'TOut>, input: 'TIn, ?runId: string, ?ct: Threading.CancellationToken) =
+        InProcessExecution.StreamAsync(workflow.Value, input, runId = (runId |> Option.toObj), ?cancellationToken = ct)

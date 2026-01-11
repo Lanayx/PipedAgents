@@ -43,13 +43,13 @@ module Target =
         let uppercaseFunc (s: string) = s.ToUpperInvariant()
         let uppercaseNode = GetNode(uppercaseFunc, "UppercaseNode")
         let reverseTextNode = GetNode(ReverseTextNode())
-        let workflow =
-            Workflow(uppercaseNode) {
+        let mainWorkflow =
+            workflow(uppercaseNode) {
                 uppercaseNode ==> reverseTextNode
                 return reverseTextNode
             }
         +task {
-            use! run = InProcessExecution.RunAsync(workflow, "Hello, World!")
+            use! run = Workflow.Run(mainWorkflow, "Hello, World!")
             for evt in run.NewEvents do
                 match evt with
                 | :? ExecutorCompletedEvent as executorComplete ->

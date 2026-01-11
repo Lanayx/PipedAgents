@@ -128,8 +128,8 @@ module Target =
             | { Response = Found result } -> result
             | _ -> failwith "Unexpected response"), "Output")
 
-        let workflow =
-            Workflow(numberRequestPort) {
+        let mainWorkflow =
+            workflow(numberRequestPort) {
                 numberRequestPort ==> judgeExecutorNode
                 judgeExecutorNode =|> [
                     case _.Response.IsHint numberRequestPort
@@ -138,15 +138,14 @@ module Target =
                 return outputNode
             }
 
-        let init = ExecutorResponse.Init.Wrap()
         +task {
-            use! handle = InProcessExecution.StreamAsync(workflow, init)
-            use enumerator = handle.WatchStreamAsync().GetAsyncEnumerator()
+            use! stream = Workflow.Stream(mainWorkflow, ExecutorResponse.Init.Wrap())
+            use enumerator = stream.WatchStreamAsync().GetAsyncEnumerator()
             while! enumerator.MoveNextAsync() do
                 match enumerator.Current with
                 | :? RequestInfoEvent as requestInputEvt ->
                     let response = handleExternalRequest requestInputEvt.Request
-                    do! handle.SendResponseAsync(response)
+                    do! stream.SendResponseAsync(response)
                 | :? WorkflowOutputEvent as outputEvt ->
                     Console.WriteLine($"Workflow completed with result: {outputEvt.Data}")
                 | _ ->

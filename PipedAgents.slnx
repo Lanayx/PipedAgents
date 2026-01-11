@@ -19,6 +19,7 @@
     <Project Path="examples/Workflows_Step03_SwitchCase/Workflows_Step03_SwitchCase.fsproj" />
     <Project Path="examples/Workflows_Step04_MultiSelection/Workflows_Step04_MultiSelection.fsproj" />
     <Project Path="examples/Workflows_Step05-HumanInTheLoop/Workflows_Step05-HumanInTheLoop.fsproj" />
+    <Project Path="examples/Workflows_Step06_SubWorkflows/Workflows_Step06_SubWorkflows.fsproj" />
   </Folder>
   <Folder Name="/src/">
     <Project Path="src/PipedAgents.MAF.OpenAI/PipedAgents.MAF.OpenAI.fsproj" />
