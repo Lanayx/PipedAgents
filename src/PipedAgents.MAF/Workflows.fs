@@ -1,6 +1,7 @@
 namespace PipedAgents.MAF.Workflows
 
 open System
+open System.Threading
 open Microsoft.Agents.AI.Workflows
 
 type Node<'TIn, 'TOut>(binding: ExecutorBinding) =
@@ -116,7 +117,11 @@ type workflow<'TIn, 'TFirstOut, 'TOut>(node: Node<'TIn, 'TFirstOut>) =
         workflow.Build() |> TypedWorkflow<'TIn, 'TOut>
 
 type Workflow =
-    static member Run<'TIn, 'TOut>(workflow: TypedWorkflow<'TIn, 'TOut>, input: 'TIn, ?runId: string, ?ct: Threading.CancellationToken) =
+    static member Run<'TIn, 'TOut>(workflow: TypedWorkflow<'TIn, 'TOut>, input: 'TIn, ?runId: string, ?ct: CancellationToken) =
         InProcessExecution.RunAsync(workflow.Value, input, runId = (runId |> Option.toObj), ?cancellationToken = ct)
-    static member Stream<'TIn, 'TOut>(workflow: TypedWorkflow<'TIn, 'TOut>, input: 'TIn, ?runId: string, ?ct: Threading.CancellationToken) =
+    static member CheckpointRun<'TIn, 'TOut>(workflow: TypedWorkflow<'TIn, 'TOut>, input: 'TIn, checkpointManager: CheckpointManager, ?runId: string, ?ct: CancellationToken) =
+        InProcessExecution.RunAsync(workflow.Value, input, checkpointManager, runId = (runId |> Option.toObj), ?cancellationToken = ct)
+    static member Stream<'TIn, 'TOut>(workflow: TypedWorkflow<'TIn, 'TOut>, input: 'TIn, ?runId: string, ?ct: CancellationToken) =
         InProcessExecution.StreamAsync(workflow.Value, input, runId = (runId |> Option.toObj), ?cancellationToken = ct)
+    static member CheckpointStream<'TIn, 'TOut>(workflow: TypedWorkflow<'TIn, 'TOut>, input: 'TIn, checkpointManager: CheckpointManager, ?runId: string, ?ct: CancellationToken) =
+        InProcessExecution.StreamAsync(workflow.Value, input, checkpointManager, runId = (runId |> Option.toObj), ?cancellationToken = ct)
