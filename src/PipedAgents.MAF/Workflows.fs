@@ -125,3 +125,7 @@ type Workflow =
         InProcessExecution.StreamAsync(workflow.Value, input, runId = (runId |> Option.toObj), ?cancellationToken = ct)
     static member CheckpointStream<'TIn, 'TOut>(workflow: TypedWorkflow<'TIn, 'TOut>, input: 'TIn, checkpointManager: CheckpointManager, ?runId: string, ?ct: CancellationToken) =
         InProcessExecution.StreamAsync(workflow.Value, input, checkpointManager, runId = (runId |> Option.toObj), ?cancellationToken = ct)
+    static member ResumeStream<'TIn, 'TOut>(workflow: TypedWorkflow<'TIn, 'TOut>, checkpoint: CheckpointInfo, checkpointManager: CheckpointManager, ?runId: string, ?ct: CancellationToken) =
+        InProcessExecution.ResumeStreamAsync(workflow.Value, checkpoint, checkpointManager, runId = (runId |> Option.toObj), ?cancellationToken = ct)
+    static member ResumeRun<'TIn, 'TOut>(workflow: TypedWorkflow<'TIn, 'TOut>, checkpoint: CheckpointInfo, checkpointManager: CheckpointManager, ?runId: string, ?ct: CancellationToken) =
+        InProcessExecution.ResumeAsync(workflow.Value, checkpoint, checkpointManager, runId = (runId |> Option.toObj), ?cancellationToken = ct)
