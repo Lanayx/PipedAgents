@@ -17,7 +17,7 @@ module BaseLine =
             BaseUrl = Uri(Environment.GetEnvironmentVariable "ANTHROPIC_BASE_URL"),
             AuthToken = Environment.GetEnvironmentVariable "ANTHROPIC_AUTH_TOKEN"
         )
-        let client = Anthropic.AnthropicClient(options)
+        let client = AnthropicClient(options)
         let agent = client.CreateAIAgent(
             model = Environment.GetEnvironmentVariable "MODEL_ID",
             instructions = "You are good at telling jokes. Write jokes with all uppercase letters.",
@@ -28,27 +28,27 @@ module BaseLine =
         |> printfn "%s"
 
 
-// module Target =
+module Target =
 
-    // let run() =
-    //     let client = Client.ForChatCompletionsAPI(Environment.GetEnvironmentVariable "MODEL_ID")
-    //     let agent = client.CreateAgent(AgentOptions(
-    //         Instructions = "You are good at telling jokes. Write jokes with all uppercase letters.",
-    //         Name = "Joker"))
-    //     +task {
-    //         let! result = agent.RunAsync("Tell me a joke about a pirate.")
-    //         printfn $"{result}"
-    //     }
-    //
-    // let runSteaming() =
-    //     let client = Client.ForChatCompletionsAPI(Environment.GetEnvironmentVariable "MODEL_ID")
-    //     let agent = client.CreateAgent(AgentOptions(
-    //         Instructions = "You are good at telling jokes. Write jokes with all uppercase letters.",
-    //         Name = "Joker"))
-    //     +task {
-    //         use enumerator = agent.RunStreamingAsync("Tell me a joke about a pirate.").GetAsyncEnumerator()
-    //         while! enumerator.MoveNextAsync() do
-    //             enumerator.Current |> string |> printf "%s"
-    //     }
+    let run() =
+        let client = Client.ForMessagesAPI(Environment.GetEnvironmentVariable "MODEL_ID")
+        let agent = client.CreateAgent(AgentOptions(
+            Instructions = "You are good at telling jokes. Write jokes with all uppercase letters.",
+            Name = "Joker"))
+        +task {
+            let! result = agent.RunAsync("Tell me a joke about a pirate.")
+            printfn $"{result}"
+        }
 
-BaseLine.run()
+    let runSteaming() =
+        let client = Client.ForMessagesAPI(Environment.GetEnvironmentVariable "MODEL_ID")
+        let agent = client.CreateAgent(AgentOptions(
+            Instructions = "You are good at telling jokes. Write jokes with all uppercase letters.",
+            Name = "Joker"))
+        +task {
+            use enumerator = agent.RunStreamingAsync("Tell me a joke about a pirate.").GetAsyncEnumerator()
+            while! enumerator.MoveNextAsync() do
+                enumerator.Current |> string |> printf "%s"
+        }
+
+Target.runSteaming()
