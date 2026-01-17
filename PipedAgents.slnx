@@ -22,6 +22,7 @@
     <Project Path="examples/Workflows_Step06_SubWorkflows/Workflows_Step06_SubWorkflows.fsproj" />
     <Project Path="examples/Workflows_Step07_CheckpointAndResume/Workflows_Step07_CheckpointAndResume.fsproj" />
     <Project Path="examples/Workflows_Step08_CheckpointAndRehydrate/Workflows_Step08_CheckpointAndRehydrate.fsproj" />
+    <Project Path="examples/Workflows_Step09_CheckpointWithHumanInTheLoop/Workflows_Step09_CheckpointWithHumanInTheLoop.fsproj" />
   </Folder>
   <Folder Name="/src/">
     <Project Path="src/PipedAgents.MAF.OpenAI/PipedAgents.MAF.OpenAI.fsproj" />
