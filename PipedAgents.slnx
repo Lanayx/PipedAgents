@@ -14,6 +14,7 @@
     <Project Path="examples/MAF/Agent_Step12_AsFunctionTool/Agent_Step12_AsFunctionTool.fsproj" />
     <Project Path="examples/MAF/Agent_Step14_Middleware/Agent_Step14_Middleware.fsproj" />
     <Project Path="examples/MAF/Agent_Step16_ChatReduction/Agent_Step16_ChatReduction.fsproj" />
+    <Project Path="examples/MAF/Agent_Step17_Anthropic/Agent_Step17_Anthropic.fsproj" />
     <Project Path="examples/MAF/Shared/Shared.fsproj" />
     <Project Path="examples/MAF/Workflows_Step01_ExecutorsAndEdges/Workflows_Step01_ExecutorsAndEdges.fsproj" />
     <Project Path="examples/MAF/Workflows_Step02_EdgeCondition/Workflows_Step02_EdgeCondition.fsproj" />

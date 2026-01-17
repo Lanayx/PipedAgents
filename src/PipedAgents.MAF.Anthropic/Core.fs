@@ -1,6 +1,6 @@
 #nowarn "57"
 
-namespace PipedAgents.MAF.OpenAI
+namespace PipedAgents.MAF.Anthropic
 
 open System
 open System.Runtime.CompilerServices
@@ -29,10 +29,17 @@ type Client =
     static member ForMessagesAPI(model, ?options) =
         let options =
             options |> Option.defaultValue (
-                ClientOptions(
-                    BaseUrl = Uri(Environment.GetEnvironmentVariable "ANTHROPIC_BASE_URL"),
-                    APIKey = Environment.GetEnvironmentVariable "ANTHROPIC_API_KEY"
-                )
+                let mutable options =
+                    ClientOptions(
+                        APIKey = Environment.GetEnvironmentVariable "ANTHROPIC_API_KEY"
+                    )
+                let baseUrl = Environment.GetEnvironmentVariable "ANTHROPIC_BASE_URL"
+                let authToken = Environment.GetEnvironmentVariable "ANTHROPIC_AUTH_TOKEN"
+                if baseUrl |> isNull |> not then
+                    options.BaseUrl <- Uri(baseUrl)
+                if authToken |> isNull |> not then
+                    options.AuthToken <- authToken
+                options
             )
         Anthropic.AnthropicClient(options).AsIChatClient(model)
             |> fun chatClient -> new MessagesChatClient(chatClient)
