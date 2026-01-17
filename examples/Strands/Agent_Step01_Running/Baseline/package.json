@@ -1,0 +1,15 @@
+{
+  "name": "strandstest",
+  "version": "1.0.0",
+  "scripts": {
+    "run": "ts-node run.ts",
+    "stream": "ts-node stream.ts"
+  },
+  "type": "module",
+  "dependencies": {
+    "@strands-agents/sdk": "^0.1.5",
+    "dotenv": "^17.2.3",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.9.3"
+  }
+}

@@ -26,6 +26,13 @@
     <Project Path="examples/MAF/Workflows_Step08_CheckpointAndRehydrate/Workflows_Step08_CheckpointAndRehydrate.fsproj" />
     <Project Path="examples/MAF/Workflows_Step09_CheckpointWithHumanInTheLoop/Workflows_Step09_CheckpointWithHumanInTheLoop.fsproj" />
   </Folder>
+  <Folder Name="/examples/Strands/" />
+  <Folder Name="/examples/Strands/Agent_Step01_Running/">
+    <Project Path="examples/Strands/Agent_Step01_Running/Baseline/Baseline.esproj">
+      <BuildType Project="Debug" />
+      <Build />
+    </Project>
+  </Folder>
   <Folder Name="/src/">
     <Project Path="src/PipedAgents.MAF.Anthropic/PipedAgents.MAF.Anthropic.fsproj" />
     <Project Path="src/PipedAgents.MAF.OpenAI/PipedAgents.MAF.OpenAI.fsproj" />
