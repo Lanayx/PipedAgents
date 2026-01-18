@@ -2,11 +2,11 @@ module.exports = {
   // Source directory containing F# files
   sourceDirs: ["src"],
   
-  // Output directory for generated TypeScript files
+  // Output directory for generated JavaScript files
   outDir: "dist",
   
-  // Target language (typescript for Node.js compatibility)
-  lang: "typescript",
+  // Target language (javascript for Node.js compatibility)
+  lang: "javascript",
   
   // Fable compiler options
   fableOptions: {
@@ -23,12 +23,9 @@ module.exports = {
   // Module system configuration
   moduleSystem: "commonjs",
   
-  // TypeScript configuration
-  typescript: {
+  // JavaScript configuration
+  javascript: {
     // Target ES version
-    target: "ES2020",
-    
-    // Module resolution
-    moduleResolution: "node"
+    target: "ES2020"
   }
 };

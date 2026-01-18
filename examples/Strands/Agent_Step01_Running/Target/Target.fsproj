@@ -9,7 +9,6 @@
     <Compile Include="src\App.fs" />
     <Content Include="fable.config.js" />
     <Content Include="package.json" />
-    <Content Include="tsconfig.json" />
   </ItemGroup>
 
   <ItemGroup>

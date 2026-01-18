@@ -38,6 +38,6 @@
     <Project Path="src/PipedAgents.MAF.Anthropic/PipedAgents.MAF.Anthropic.fsproj" />
     <Project Path="src/PipedAgents.MAF.OpenAI/PipedAgents.MAF.OpenAI.fsproj" />
     <Project Path="src/PipedAgents.MAF/PipedAgents.MAF.fsproj" />
-    <Project Path="src/PipedAgents.Strands.TS/PipedAgents.Strands.TS.fsproj" />
+    <Project Path="src/PipedAgents.Strands.JS/PipedAgents.Strands.JS.fsproj" />
   </Folder>
 </Solution>

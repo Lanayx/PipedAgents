@@ -7,9 +7,12 @@
   },
   "type": "module",
   "dependencies": {
-    "@strands-agents/sdk": "^0.1.5",
     "dotenv": "^17.2.3",
+    "@strands-agents/sdk": "^0.1.5"
+  },
+  "devDependencies": {
     "ts-node": "^10.9.2",
-    "typescript": "^5.9.3"
+    "typescript": "^5.9.3",
+    "@types/node": "^25.0.9"
   }
 }
