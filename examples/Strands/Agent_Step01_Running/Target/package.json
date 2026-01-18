@@ -2,15 +2,17 @@
   "name": "fable-hello-world",
   "version": "1.0.0",
   "description": "A simple hello world Node.js console application built using F# Fable",
+  "type": "module",
   "main": "dist/src/App.js",
   "scripts": {
     "build": "dotnet fable . --outDir dist --lang javascript --sourceMaps",
-    "run": "npm run build && node dist/src/App.js"
+    "start": "npm run build && node dist/src/App.js"
   },
   "keywords": ["fsharp", "fable", "javascript", "nodejs", "hello-world"],
   "author": "",
   "license": "MIT",
   "dependencies": {
-    "@strands-agents/sdk": "^0.1.5"
+    "@strands-agents/sdk": "^0.1.5",
+    "dotenv": "^16.0.0"
   }
 }
