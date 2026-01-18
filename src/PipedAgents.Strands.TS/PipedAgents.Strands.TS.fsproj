@@ -1,0 +1,36 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <TargetFramework>net8.0</TargetFramework>
+        <FablePackageType>library</FablePackageType>
+        <WarningsAsErrors>3239;0025</WarningsAsErrors>
+        <PackageId>PipedAgents.Strands.TS</PackageId>
+        <Title>PipedAgents.Strands.TS</Title>
+        <Company>F# community</Company>
+        <Description>F# wrapper of strands-agents library</Description>
+        <RepositoryUrl>https://github.com/Lanayx/PipedAgents</RepositoryUrl>
+        <PackageLicenseExpression>MIT</PackageLicenseExpression>
+        <PackageProjectUrl>https://github.com/Lanayx/PipedAgents/tree/main/src/PipedAgents.Strands.TS</PackageProjectUrl>
+        <RepositoryType>git</RepositoryType>
+        <PackageTags>F#;FSharp;Fable;fable-javascript;Agents;Agentic;Framework;Strands</PackageTags>
+        <Authors>Vladimir Shchur and contributors</Authors>
+        <Copyright>Copyright (c) Vladimir Shchur 2026</Copyright>
+        <PackageReadmeFile>README.md</PackageReadmeFile>
+        <Version>0.0.1</Version>
+        <PackageVersion>0.0.1</PackageVersion>
+        <PackageReleaseNotes>Initial release.</PackageReleaseNotes>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <PackageReference Include="Fable.Core" Version="4.5.0" />
+        <PackageReference Include="Fable.Package.SDK" Version="1.3.0">
+            <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+            <PrivateAssets>all</PrivateAssets>
+        </PackageReference>
+    </ItemGroup>
+
+    <ItemGroup>
+        <Compile Include="AgentBindings.fs" />
+    </ItemGroup>
+
+</Project>

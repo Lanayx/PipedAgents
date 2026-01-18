@@ -1,0 +1,14 @@
+{
+  "name": "fable-hello-world",
+  "description": "A simple hello world Node.js console application built using F# Fable",
+  "main": "dist/App.ts",
+  "scripts": {
+    "build": "dotnet fable . --outDir dist --lang typescript --sourceMaps",
+    "run": "npm run build && ts-node dist/App.ts"
+  },
+  "devDependencies": {
+    "typescript": "^5.0.0",
+    "@types/node": "^20.0.0",
+    "ts-node": "^10.9.0"
+  }
+}

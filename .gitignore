@@ -33,6 +33,7 @@ bld/
 [Oo]ut/
 [Ll]og/
 [Ll]ogs/
+dist/
 
 # Build results on 'Bin' directories
 **/[Bb]in/*
@@ -381,6 +382,9 @@ MSBuild_Logs/
 # Local History for Visual Studio
 **/.localhistory/
 
+# Local git history
+.gitkeep
+
 # Visual Studio History (VSHistory) files
 .vshistory/
 
@@ -398,11 +402,11 @@ FodyWeavers.xsd
 
 # VS Code files for those working on multiple tools
 .vscode/*
-!.vscode/settings.json
 !.vscode/tasks.json
 !.vscode/launch.json
 !.vscode/extensions.json
 !.vscode/*.code-snippets
+.kiro/
 
 # Local History for Visual Studio Code
 .history/
