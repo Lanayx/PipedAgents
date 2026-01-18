@@ -216,68 +216,6 @@ module Interop =
         /// <returns>AsyncIterable of streaming events</returns>
         member _.stream(messages: obj, options: obj): obj = jsNative
 
-    /// <summary>
-    /// Environment variable access bindings for Node.js process.env.
-    /// Provides type-safe access to environment variables with F# Option types.
-    /// </summary>
-    module Environment =
-        
-        /// <summary>
-        /// Gets an environment variable value by name.
-        /// Returns None if the variable is not set or is empty.
-        /// </summary>
-        /// <param name="name">The name of the environment variable</param>
-        /// <returns>Some(value) if the variable exists and is non-empty, None otherwise</returns>
-        [<Emit("process.env[$0]")>]
-        let private getEnvVarRaw(name: string): string = jsNative
-        
-        let getEnvVar(name: string): string option =
-            let value = getEnvVarRaw(name)
-            if isNull value || value = "" then None else Some value
-        
-        /// <summary>
-        /// Loads environment variables from a .env file using dotenv.
-        /// Should be called before accessing environment variables.
-        /// </summary>
-        [<Import("config", "dotenv")>]
-        let loadDotEnv(): unit = jsNative
-        
-        /// <summary>
-        /// Gets the OpenAI API key from environment variables.
-        /// Looks for OPENAI_API_KEY environment variable.
-        /// </summary>
-        /// <returns>Some(apiKey) if found, None otherwise</returns>
-        let getOpenAIApiKey(): string option =
-            getEnvVar("OPENAI_API_KEY")
-        
-        /// <summary>
-        /// Gets the model ID from environment variables.
-        /// Looks for MODEL_ID environment variable.
-        /// </summary>
-        /// <returns>Some(modelId) if found, None otherwise</returns>
-        let getModelId(): string option =
-            getEnvVar("MODEL_ID")
-        
-        /// <summary>
-        /// Gets the OpenAI API base URL from environment variables.
-        /// Looks for OPENAI_API_BASE_URL environment variable.
-        /// </summary>
-        /// <returns>Some(baseUrl) if found, None otherwise</returns>
-        let getOpenAIBaseUrl(): string option =
-            getEnvVar("OPENAI_API_BASE_URL")
-        
-        /// <summary>
-        /// Loads all common Strands SDK environment variables.
-        /// Returns a record with all the standard environment variables used by the SDK.
-        /// </summary>
-        /// <returns>Record containing all loaded environment variables</returns>
-        let loadStrandsEnvironment(): {| ApiKey: string option; ModelId: string option; BaseUrl: string option |} =
-            {|
-                ApiKey = getOpenAIApiKey()
-                ModelId = getModelId()
-                BaseUrl = getOpenAIBaseUrl()
-            |}
-
 /// <summary>
 /// Configuration conversion functions for transforming F# types to JavaScript objects.
 /// These functions handle the conversion between F# records with Option types and

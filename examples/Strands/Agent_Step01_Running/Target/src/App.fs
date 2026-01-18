@@ -1,36 +1,27 @@
+#nowarn 46
+
 module App
 
-open Fable.Core
+open Node
 open Fable.Core.JS
 open Fable.Core.JsInterop
 open PipedAgents.Strands.JS.Types
-open PipedAgents.Strands.JS.Interop
 open PipedAgents.Strands.JS
 
-[<Emit("process.exitCode = 1")>]
-let setExitCode() = ()
-
 let run () =
-    // Load environment variables from .env file
-    Environment.loadDotEnv()
-
-    // Get environment configuration
-    let env = Environment.loadStrandsEnvironment()
 
     // Create the OpenAI model with environment configuration
     let modelConfig = {
-        ModelId = env.ModelId |> Option.defaultValue "gpt-3.5-turbo"
-        ApiKey = env.ApiKey
+        ModelId = process.env?MODEL_ID
+        ApiKey = process.env?OPENAI_API_KEY
         Temperature = None
         MaxTokens = None
         TopP = None
         FrequencyPenalty = None
         PresencePenalty = None
-        ClientConfig =
-            match env.BaseUrl with
-            | Some baseUrl ->
-                Some !!{| baseURL = baseUrl |}
-            | None -> None
+        ClientConfig = Some !!{|
+            baseURL = process.env?OPENAI_API_BASE_URL
+        |}
     }
 
     let model = OpenAIModel.create modelConfig
@@ -57,26 +48,19 @@ let run () =
     }
 
 let stream () =
-    // Load environment variables from .env file
-    Environment.loadDotEnv()
-
-    // Get environment configuration
-    let env = Environment.loadStrandsEnvironment()
 
     // Create the OpenAI model with environment configuration
     let modelConfig = {
-        ModelId = env.ModelId |> Option.defaultValue "gpt-3.5-turbo"
-        ApiKey = env.ApiKey
+        ModelId = process.env?MODEL_ID
+        ApiKey = process.env?OPENAI_API_KEY
         Temperature = None
         MaxTokens = None
         TopP = None
         FrequencyPenalty = None
         PresencePenalty = None
-        ClientConfig =
-            match env.BaseUrl with
-            | Some baseUrl ->
-                Some !!{| baseURL = baseUrl |}
-            | None -> None
+        ClientConfig = Some !!{|
+            baseURL = process.env?OPENAI_API_BASE_URL
+        |}
     }
 
     let model = OpenAIModel.create modelConfig
@@ -114,17 +98,15 @@ let stream () =
                     let delta = event?delta
                     let deltaType = delta?``type``
                     if deltaType = "textDelta" then
-                        let text = delta?text
-                        // Write to stdout without newline (similar to process.stdout.write)
-                        printf "%s" (string text)
+                        process.stdout.write delta?text |> ignore
         
         console.log("\nAgent call completed.")
     }
 
 [<EntryPoint>]
-let entryPoint argv =
+let entryPoint _ =
     stream().catch(fun ex ->
         console.error(ex)
-        setExitCode()
+        process.exitCode <- 1
     ) |> ignore
     0 // Return success exit code

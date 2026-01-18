@@ -6,7 +6,7 @@
   "main": "dist/src/App.js",
   "scripts": {
     "build": "dotnet fable . --outDir dist --lang javascript --sourceMaps",
-    "start": "npm run build && node dist/src/App.js"
+    "start": "npm run build && node --env-file=.env dist/src/App.js"
   },
   "keywords": ["fsharp", "fable", "javascript", "nodejs", "hello-world"],
   "author": "",

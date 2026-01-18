@@ -1,6 +1,5 @@
 import { Agent } from '@strands-agents/sdk';
 import { OpenAIModel } from '@strands-agents/sdk/openai';
-import * as dotenv from 'dotenv';
 
 async function main() {
     // Initialize the OpenAI model
@@ -29,7 +28,6 @@ async function main() {
     console.log("\nAgent call completed.");
 }
 
-dotenv.config();
 main().catch((err) => {
     console.error(err);
     process.exitCode = 1;
