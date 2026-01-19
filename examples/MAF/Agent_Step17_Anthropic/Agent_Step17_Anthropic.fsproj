@@ -10,8 +10,8 @@
     </ItemGroup>
 
     <ItemGroup>
-      <ProjectReference Include="..\..\..\src\PipedAgents.MAF.Anthropic\PipedAgents.MAF.Anthropic.fsproj" />
-      <ProjectReference Include="..\Shared\Shared.fsproj" />
+        <ProjectReference Include="..\..\..\src\PipedAgents.MAF\PipedAgents.MAF.fsproj" />
+        <ProjectReference Include="..\Shared\Shared.fsproj" />
     </ItemGroup>
 
 </Project>

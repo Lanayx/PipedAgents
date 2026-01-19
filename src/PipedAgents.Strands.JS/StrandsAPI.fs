@@ -1,6 +1,7 @@
 namespace PipedAgents.Strands.JS
 
 open Fable.Core.JS
+open Fable.Core.JsInterop
 
 /// <summary>
 /// High-level F# API for creating and using Strands agents.
@@ -102,8 +103,11 @@ module Client =
     /// Creates a new OpenAI client with the provided configuration.
     /// Converts F# OpenAIClientOptions to JavaScript object and initializes the underlying JSOpenAIModel.
     /// </summary>
+    /// <param name="modelId">Model identifier string</param>
     /// <param name="options">F# OpenAIClientOptions class</param>
     /// <returns>OpenAIClient instance ready for use</returns>
     /// <exception cref="StrandsSDKException">Thrown when client creation fails</exception>
-    let forChatCompletionsAPI (options: OpenAIClientOptions) : OpenAIClient =
-        { JSModel = JSOpenAIModel(options.ToJS()) }
+    let ForChatCompletionsAPI (modelId: string, options: OpenAIClientOptions) : OpenAIClient =
+        let jsOptions: obj = options.ToJS()
+        jsOptions?modelId <- modelId
+        { JSModel = JSOpenAIModel(jsOptions) }

@@ -6,12 +6,16 @@
 
     <ItemGroup>
         <Compile Include="Agents.fs" />
+        <Compile Include="Agents.OpenAI.fs" />
+        <Compile Include="Agents.Anthropic.fs" />
         <Compile Include="Workflows.fs" />
     </ItemGroup>
 
     <ItemGroup>
       <PackageReference Include="Microsoft.Agents.AI" Version="1.0.0-preview.251219.1" />
       <PackageReference Include="Microsoft.Agents.AI.Workflows" Version="1.0.0-preview.251219.1" />
+      <PackageReference Include="Microsoft.Agents.AI.Anthropic" Version="1.0.0-preview.251219.1" />
+      <PackageReference Include="Microsoft.Agents.AI.OpenAI" Version="1.0.0-preview.251219.1" />
     </ItemGroup>
 
 </Project>

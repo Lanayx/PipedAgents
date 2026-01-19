@@ -160,7 +160,7 @@ open InternalConversion
 /// Directly wraps a JavaScript object for efficient interop with the Strands SDK.
 /// </summary>
 type AgentOptions() =
-    let jsObj = !!{| |}
+    let jsObj = !!{| printer = false |}
     
     /// The model instance or string model ID to use
     member this.Model with set (value: obj) = jsObj?model <- value
@@ -173,7 +173,7 @@ type AgentOptions() =
     /// Initial state values for the agent
     member this.State with set (value: obj) = jsObj?state <- obj
     /// Enable automatic console output printing
-    member this.Printer with set (value: Nullable<bool>) = if value.HasValue then jsObj?printer <- value.Value
+    member this.Printer with set (value: bool) = jsObj?printer <- value
     /// Conversation manager for handling message history
     member this.ConversationManager with set (value: obj) = jsObj?conversationManager <- value
     /// Hook providers for extending agent behavior
@@ -191,9 +191,6 @@ type OpenAIClientOptions() =
         if isNull jsObj?clientConfig then
             jsObj?clientConfig <- !!{| |}
         jsObj?clientConfig
-
-    /// Required model identifier (e.g., "gpt-4")
-    member this.ModelId with set (value: string) = jsObj?modelId <- value
     /// API key (falls back to environment variable if not provided)
     member this.ApiKey with set (value: string) = jsObj?apiKey <- value
     /// Sampling temperature (0.0 to 2.0)
@@ -256,11 +253,3 @@ module Interop =
         /// </summary>
         /// <returns>The current configuration object</returns>
         member _.getConfig(): obj = jsNative
-        
-        /// <summary>
-        /// Streams a conversation with the OpenAI model.
-        /// </summary>
-        /// <param name="messages">Array of conversation messages</param>
-        /// <param name="options">Optional streaming configuration</param>
-        /// <returns>AsyncIterable of streaming events</returns>
-        member _.stream(messages: obj, options: obj): obj = jsNative

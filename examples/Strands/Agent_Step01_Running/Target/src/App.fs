@@ -10,18 +10,18 @@ open PipedAgents.Strands.JS
 
 let run () =
 
+    let modelId = process.env?MODEL_ID
     // Create the OpenAI client with environment configuration
-    let clientOptions = OpenAIClientOptions()
-    clientOptions.ModelId <- process.env?MODEL_ID
-    clientOptions.ApiKey <- process.env?OPENAI_API_KEY
-    clientOptions.BaseURL <- process.env?OPENAI_API_BASE_URL
-
-    let client = Client.forChatCompletionsAPI clientOptions
+    let clientOptions = OpenAIClientOptions(
+        ApiKey = process.env?OPENAI_API_KEY,
+        BaseURL = process.env?OPENAI_API_BASE_URL
+    )
+    let client = Client.ForChatCompletionsAPI(modelId, clientOptions)
 
     // Create the agent with joke-telling system prompt
-    let agentOptions = AgentOptions()
-    agentOptions.SystemPrompt <- "You are good at telling jokes. Write jokes with all uppercase letters."
-    agentOptions.Printer <- false
+    let agentOptions = AgentOptions(
+        SystemPrompt = "You are good at telling jokes. Write jokes with all uppercase letters."
+    )
 
     let agent = client.CreateAgent(agentOptions)
 
@@ -34,18 +34,18 @@ let run () =
 
 let stream () =
 
+    let modelId = process.env?MODEL_ID
     // Create the OpenAI client with environment configuration
-    let clientOptions = OpenAIClientOptions()
-    clientOptions.ModelId <- process.env?MODEL_ID
-    clientOptions.ApiKey <- process.env?OPENAI_API_KEY
-    clientOptions.BaseURL <- process.env?OPENAI_API_BASE_URL
-
-    let client = Client.forChatCompletionsAPI clientOptions
+    let clientOptions = OpenAIClientOptions(
+        ApiKey = process.env?OPENAI_API_KEY,
+        BaseURL = process.env?OPENAI_API_BASE_URL
+    )
+    let client = Client.ForChatCompletionsAPI(modelId, clientOptions)
 
     // Create the agent with joke-telling system prompt
-    let agentOptions = AgentOptions()
-    agentOptions.SystemPrompt <- "You are good at telling jokes. Write jokes with all uppercase letters."
-    agentOptions.Printer <- false
+    let agentOptions = AgentOptions(
+        SystemPrompt = "You are good at telling jokes. Write jokes with all uppercase letters."
+    )
 
     let agent = client.CreateAgent(agentOptions)
 
