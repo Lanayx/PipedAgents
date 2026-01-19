@@ -10,35 +10,20 @@ open PipedAgents.Strands.JS
 
 let run () =
 
-    // Create the OpenAI model with environment configuration
-    let modelConfig = {
-        ModelId = process.env?MODEL_ID
-        ApiKey = process.env?OPENAI_API_KEY
-        Temperature = None
-        MaxTokens = None
-        TopP = None
-        FrequencyPenalty = None
-        PresencePenalty = None
-        ClientConfig = Some !!{|
-            baseURL = process.env?OPENAI_API_BASE_URL
-        |}
-    }
+    // Create the OpenAI client with environment configuration
+    let clientOptions = OpenAIClientOptions()
+    clientOptions.ModelId <- process.env?MODEL_ID
+    clientOptions.ApiKey <- process.env?OPENAI_API_KEY
+    clientOptions.BaseURL <- process.env?OPENAI_API_BASE_URL
 
-    let model = OpenAIModel.create modelConfig
+    let client = Client.forChatCompletionsAPI clientOptions
 
     // Create the agent with joke-telling system prompt
-    let agentConfig = {
-        Model = Some (OpenAIModel.getJSModel model :> obj)
-        Messages = None
-        Tools = None
-        SystemPrompt = Some "You are good at telling jokes. Write jokes with all uppercase letters."
-        State = None
-        Printer = Some false
-        ConversationManager = None
-        Hooks = None
-    }
+    let agentOptions = AgentOptions()
+    agentOptions.SystemPrompt <- "You are good at telling jokes. Write jokes with all uppercase letters."
+    agentOptions.Printer <- false
 
-    let agent = Agent.create agentConfig
+    let agent = client.CreateAgent(agentOptions)
 
     // Invoke the agent with pirate joke request
     promise {
@@ -49,35 +34,20 @@ let run () =
 
 let stream () =
 
-    // Create the OpenAI model with environment configuration
-    let modelConfig = {
-        ModelId = process.env?MODEL_ID
-        ApiKey = process.env?OPENAI_API_KEY
-        Temperature = None
-        MaxTokens = None
-        TopP = None
-        FrequencyPenalty = None
-        PresencePenalty = None
-        ClientConfig = Some !!{|
-            baseURL = process.env?OPENAI_API_BASE_URL
-        |}
-    }
+    // Create the OpenAI client with environment configuration
+    let clientOptions = OpenAIClientOptions()
+    clientOptions.ModelId <- process.env?MODEL_ID
+    clientOptions.ApiKey <- process.env?OPENAI_API_KEY
+    clientOptions.BaseURL <- process.env?OPENAI_API_BASE_URL
 
-    let model = OpenAIModel.create modelConfig
+    let client = Client.forChatCompletionsAPI clientOptions
 
     // Create the agent with joke-telling system prompt
-    let agentConfig = {
-        Model = Some (OpenAIModel.getJSModel model :> obj)
-        Messages = None
-        Tools = None
-        SystemPrompt = Some "You are good at telling jokes. Write jokes with all uppercase letters."
-        State = None
-        Printer = Some false
-        ConversationManager = None
-        Hooks = None
-    }
+    let agentOptions = AgentOptions()
+    agentOptions.SystemPrompt <- "You are good at telling jokes. Write jokes with all uppercase letters."
+    agentOptions.Printer <- false
 
-    let agent = Agent.create agentConfig
+    let agent = client.CreateAgent(agentOptions)
 
     // Stream the agent response using promise CE
     promise {
@@ -105,7 +75,7 @@ let stream () =
 
 [<EntryPoint>]
 let entryPoint _ =
-    stream().catch(fun ex ->
+    run().catch(fun ex ->
         console.error(ex)
         process.exitCode <- 1
     ) |> ignore

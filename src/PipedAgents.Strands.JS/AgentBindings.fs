@@ -2,7 +2,7 @@ namespace PipedAgents.Strands.JS
 
 open System
 open Fable.Core
-open Fable.Core.JS
+open Fable.Core.JsInterop
 
 /// <summary>
 /// Core type definitions for F# Fable bindings to the Strands SDK.
@@ -29,7 +29,7 @@ module Types =
         /// Tool usage request with parameters
         | ToolUseBlock of id: string * name: string * input: obj
         /// Result from tool execution
-        | ToolResultBlock of toolUseId: string * status: string * content: obj list * error: exn option
+        | ToolResultBlock of toolUseId: string * status: string * content: obj array * error: exn option
         /// AI reasoning process content (may be redacted)
         | ReasoningBlock of text: string option * signature: string option * redactedContent: byte array option
         /// Cache point marker for prompt caching
@@ -53,62 +53,7 @@ module Types =
         /// The role of the message sender (user or assistant)
         Role: MessageRole
         /// Array of content blocks that make up this message
-        Content: ContentBlock list
-    }
-
-    /// <summary>
-    /// Agent configuration record with F# Option types for optional parameters.
-    /// Provides type-safe configuration for creating Strands agents.
-    /// </summary>
-    type AgentConfig = {
-        /// The model instance or string model ID to use
-        Model: obj option
-        /// Initial conversation history
-        Messages: Message list option
-        /// Tools available to the agent (nested arrays are flattened)
-        Tools: obj list option
-        /// System prompt to guide agent behavior
-        SystemPrompt: string option
-        /// Initial state values for the agent
-        State: Map<string, obj> option
-        /// Enable automatic console output printing
-        Printer: bool option
-        /// Conversation manager for handling message history
-        ConversationManager: obj option
-        /// Hook providers for extending agent behavior
-        Hooks: obj list option
-    }
-
-    /// <summary>
-    /// OpenAI model configuration with type-safe optional parameters.
-    /// </summary>
-    type OpenAIModelConfig = {
-        /// Required model identifier (e.g., "gpt-4")
-        ModelId: string
-        /// API key (falls back to environment variable if not provided)
-        ApiKey: string option
-        /// Sampling temperature (0.0 to 2.0)
-        Temperature: float option
-        /// Maximum tokens to generate
-        MaxTokens: int option
-        /// Top-p sampling parameter
-        TopP: float option
-        /// Frequency penalty (-2.0 to 2.0)
-        FrequencyPenalty: float option
-        /// Presence penalty (-2.0 to 2.0)
-        PresencePenalty: float option
-        /// Additional client configuration options
-        ClientConfig: obj option
-    }
-
-    /// <summary>
-    /// Client configuration for OpenAI API connections.
-    /// </summary>
-    type ClientConfig = {
-        /// Custom base URL for API requests
-        BaseURL: string option
-        /// Request timeout in milliseconds
-        Timeout: int option
+        Content: ContentBlock array
     }
 
     /// <summary>
@@ -120,9 +65,9 @@ module Types =
         /// The last message added to the conversation
         LastMessage: Message
         /// Complete conversation history
-        Messages: Message list
+        Messages: Message array
         /// Final agent state
-        State: Map<string, obj>
+        State: obj
     }
 
     /// <summary>
@@ -165,6 +110,110 @@ module Types =
     exception StrandsSDKException of message: string * innerException: exn option
 
 /// <summary>
+/// Internal configuration conversion utilities.
+/// </summary>
+module internal InternalConversion =
+    open Types
+
+    let messageRoleToJS (role: MessageRole): string =
+        match role with
+        | User -> "user"
+        | Assistant -> "assistant"
+
+    let contentBlockToJS (contentBlock: ContentBlock): obj =
+        match contentBlock with
+        | TextBlock text -> !!{| ``type`` = "text"; text = text |}
+        | ToolUseBlock (id, name, input) -> !!{| ``type`` = "toolUse"; id = id; name = name; input = input |}
+        | ToolResultBlock (toolUseId, status, content, error) ->
+            let baseObj = {| ``type`` = "toolResult"; toolUseId = toolUseId; status = status; content = content |}
+            match error with
+            | Some err -> !!{| baseObj with error = err |}
+            | None -> !!baseObj
+        | ReasoningBlock (text, signature, redactedContent) ->
+            let mutable jsObj = !!{| ``type`` = "reasoning" |}
+            match text with Some t -> jsObj?text <- t | None -> ()
+            match signature with Some s -> jsObj?signature <- s | None -> ()
+            match redactedContent with Some rc -> jsObj?redactedContent <- rc | None -> ()
+            jsObj
+        | CachePointBlock cacheType -> !!{| ``type`` = "cachePoint"; cacheType = cacheType |}
+        | GuardContentBlock (text, image) ->
+            let mutable jsObj = !!{| ``type`` = "guardContent" |}
+            match text with Some t -> jsObj?text <- t | None -> ()
+            match image with Some i -> jsObj?image <- i | None -> ()
+            jsObj
+        | ImageBlock (format, source) -> !!{| ``type`` = "image"; format = format; source = source |}
+        | VideoBlock (format, source) -> !!{| ``type`` = "video"; format = format; source = source |}
+        | DocumentBlock (format, source) -> !!{| ``type`` = "document"; format = format; source = source |}
+        | JsonBlock json -> !!{| ``type`` = "json"; json = json |}
+
+    let messageToJS (message: Message): obj =
+        !!{|
+            role = messageRoleToJS message.Role
+            content = (message.Content |> Array.map contentBlockToJS)
+        |}
+
+open Types
+open InternalConversion
+
+/// <summary>
+/// Agent configuration options.
+/// Directly wraps a JavaScript object for efficient interop with the Strands SDK.
+/// </summary>
+type AgentOptions() =
+    let jsObj = !!{| |}
+    
+    /// The model instance or string model ID to use
+    member this.Model with set (value: obj) = jsObj?model <- value
+    /// Initial conversation history
+    member this.Messages with set (value: Message array) = jsObj?messages <- (value |> Array.map messageToJS)
+    /// Tools available to the agent (nested arrays are flattened)
+    member this.Tools with set (value: obj array) = jsObj?tools <- value
+    /// System prompt to guide agent behavior
+    member this.SystemPrompt with set (value: string) = jsObj?systemPrompt <- value
+    /// Initial state values for the agent
+    member this.State with set (value: obj) = jsObj?state <- obj
+    /// Enable automatic console output printing
+    member this.Printer with set (value: Nullable<bool>) = if value.HasValue then jsObj?printer <- value.Value
+    /// Conversation manager for handling message history
+    member this.ConversationManager with set (value: obj) = jsObj?conversationManager <- value
+    /// Hook providers for extending agent behavior
+    member this.Hooks with set (value: obj array) = jsObj?hooks <- value
+
+    member internal this.ToJS() = jsObj
+
+/// <summary>
+/// OpenAI client configuration options.
+/// Directly wraps a JavaScript object for efficient interop with the OpenAI SDK.
+/// </summary>
+type OpenAIClientOptions() =
+    let jsObj = !!{| |}
+    let getClientConfig () =
+        if isNull jsObj?clientConfig then
+            jsObj?clientConfig <- !!{| |}
+        jsObj?clientConfig
+
+    /// Required model identifier (e.g., "gpt-4")
+    member this.ModelId with set (value: string) = jsObj?modelId <- value
+    /// API key (falls back to environment variable if not provided)
+    member this.ApiKey with set (value: string) = jsObj?apiKey <- value
+    /// Sampling temperature (0.0 to 2.0)
+    member this.Temperature with set (value: Nullable<float>) = if value.HasValue then jsObj?temperature <- value.Value
+    /// Maximum tokens to generate
+    member this.MaxTokens with set (value: Nullable<int>) = if value.HasValue then jsObj?maxTokens <- value.Value
+    /// Top-p sampling parameter
+    member this.TopP with set (value: Nullable<float>) = if value.HasValue then jsObj?topP <- value.Value
+    /// Frequency penalty (-2.0 to 2.0)
+    member this.FrequencyPenalty with set (value: Nullable<float>) = if value.HasValue then jsObj?frequencyPenalty <- value.Value
+    /// Presence penalty (-2.0 to 2.0)
+    member this.PresencePenalty with set (value: Nullable<float>) = if value.HasValue then jsObj?presencePenalty <- value.Value
+    /// Custom base URL for API requests
+    member this.BaseURL with set (value: string) = (getClientConfig())?baseURL <- value
+    /// Request timeout in milliseconds
+    member this.Timeout with set (value: Nullable<int>) = if value.HasValue then (getClientConfig())?timeout <- value.Value
+
+    member internal this.ToJS() = jsObj
+
+/// <summary>
 /// Low-level JavaScript interop bindings for the Strands SDK.
 /// These bindings use Fable's [<Import>] attributes to access the JavaScript SDK directly.
 /// </summary>
@@ -181,7 +230,7 @@ module Interop =
         /// </summary>
         /// <param name="args">Input arguments - can be string, ContentBlock[], or Message[]</param>
         /// <returns>Promise that resolves to AgentResult</returns>
-        member _.invoke(args: obj): Promise<obj> = jsNative
+        member _.invoke(args: obj): JS.Promise<obj> = jsNative
         
         /// <summary>
         /// Streams the agent execution, yielding events and returning the final result.
@@ -215,237 +264,3 @@ module Interop =
         /// <param name="options">Optional streaming configuration</param>
         /// <returns>AsyncIterable of streaming events</returns>
         member _.stream(messages: obj, options: obj): obj = jsNative
-
-/// <summary>
-/// Configuration conversion functions for transforming F# types to JavaScript objects.
-/// These functions handle the conversion between F# records with Option types and
-/// JavaScript objects with optional properties.
-/// </summary>
-module ConfigConversion =
-    
-    open Types
-    open Fable.Core.JsInterop
-    
-    // Create an alias for the Map module to avoid conflicts with JavaScript Map
-    module FSharpMap = Microsoft.FSharp.Collections.Map
-    
-    /// <summary>
-    /// Converts an F# Map to a JavaScript object.
-    /// Note: This is a simplified implementation that returns an empty object.
-    /// The Map iteration issue will be resolved in a future iteration.
-    /// </summary>
-    /// <param name="map">F# Map to convert</param>
-    /// <returns>JavaScript object with the map's key-value pairs</returns>
-    let private mapToJS (map: Map<string, obj>): obj =
-        // Simplified implementation - returns empty object for now
-        // TODO: Implement proper Map to JS conversion
-        !!{| |}
-    
-    /// <summary>
-    /// Converts F# MessageRole to JavaScript string representation.
-    /// </summary>
-    /// <param name="role">F# MessageRole discriminated union</param>
-    /// <returns>JavaScript string representation of the role</returns>
-    let private messageRoleToJS (role: MessageRole): string =
-        match role with
-        | User -> "user"
-        | Assistant -> "assistant"
-    
-    /// <summary>
-    /// Converts F# ContentBlock to JavaScript object representation.
-    /// Handles all content block types and their specific properties.
-    /// </summary>
-    /// <param name="contentBlock">F# ContentBlock discriminated union</param>
-    /// <returns>JavaScript object representation of the content block</returns>
-    let private contentBlockToJS (contentBlock: ContentBlock): obj =
-        match contentBlock with
-        | TextBlock text -> 
-            !!{|
-                ``type`` = "text"
-                text = text
-            |}
-        | ToolUseBlock (id, name, input) ->
-            !!{|
-                ``type`` = "toolUse"
-                id = id
-                name = name
-                input = input
-            |}
-        | ToolResultBlock (toolUseId, status, content, error) ->
-            let baseObj = {|
-                ``type`` = "toolResult"
-                toolUseId = toolUseId
-                status = status
-                content = content
-            |}
-            match error with
-            | Some err -> 
-                !!{| baseObj with error = err |}
-            | None -> !!baseObj
-        | ReasoningBlock (text, signature, redactedContent) ->
-            let mutable jsObj = !!{| ``type`` = "reasoning" |}
-            match text with Some t -> jsObj?text <- t | None -> ()
-            match signature with Some s -> jsObj?signature <- s | None -> ()
-            match redactedContent with Some rc -> jsObj?redactedContent <- rc | None -> ()
-            jsObj
-        | CachePointBlock cacheType ->
-            !!{|
-                ``type`` = "cachePoint"
-                cacheType = cacheType
-            |}
-        | GuardContentBlock (text, image) ->
-            let mutable jsObj = !!{| ``type`` = "guardContent" |}
-            match text with Some t -> jsObj?text <- t | None -> ()
-            match image with Some i -> jsObj?image <- i | None -> ()
-            jsObj
-        | ImageBlock (format, source) ->
-            !!{|
-                ``type`` = "image"
-                format = format
-                source = source
-            |}
-        | VideoBlock (format, source) ->
-            !!{|
-                ``type`` = "video"
-                format = format
-                source = source
-            |}
-        | DocumentBlock (format, source) ->
-            !!{|
-                ``type`` = "document"
-                format = format
-                source = source
-            |}
-        | JsonBlock json ->
-            !!{|
-                ``type`` = "json"
-                json = json
-            |}
-    
-    /// <summary>
-    /// Converts F# Message to JavaScript object representation.
-    /// </summary>
-    /// <param name="message">F# Message record</param>
-    /// <returns>JavaScript object representation of the message</returns>
-    let private messageToJS (message: Message): obj =
-        !!{|
-            role = messageRoleToJS message.Role
-            content = (message.Content |> List.map contentBlockToJS |> List.toArray)
-        |}
-    
-    /// <summary>
-    /// Flattens nested tool arrays recursively.
-    /// The Strands SDK accepts nested arrays of tools and flattens them automatically.
-    /// This function replicates that behavior for type safety.
-    /// </summary>
-    /// <param name="tools">List of tool objects that may contain nested arrays</param>
-    /// <returns>Flattened array of tool objects</returns>
-    let private flattenTools (tools: obj list): obj array =
-        let rec flatten (item: obj): obj list =
-            match item with
-            | :? (obj array) as arr -> arr |> List.ofArray |> List.collect flatten
-            | :? (obj list) as lst -> lst |> List.collect flatten
-            | tool -> [tool]
-        
-        tools |> List.collect flatten |> List.toArray
-    
-
-    
-    /// <summary>
-    /// Converts F# AgentConfig record to JavaScript object for the Strands SDK.
-    /// Handles optional fields properly by only including them if they have values.
-    /// Supports model polymorphism (string or object) and tool array flattening.
-    /// </summary>
-    /// <param name="config">F# AgentConfig record with Option types</param>
-    /// <returns>JavaScript object compatible with Strands SDK Agent constructor</returns>
-    let agentConfigToJS (config: AgentConfig): obj =
-        let mutable jsObj = !!{| |}
-        
-        // Handle model polymorphism - can be string or Model instance
-        match config.Model with
-        | Some model -> jsObj?model <- model
-        | None -> ()
-        
-        // Convert messages array if provided
-        match config.Messages with
-        | Some messages -> 
-            jsObj?messages <- (messages |> List.map messageToJS |> List.toArray)
-        | None -> ()
-        
-        // Flatten and convert tools array if provided
-        match config.Tools with
-        | Some tools -> 
-            jsObj?tools <- flattenTools tools
-        | None -> ()
-        
-        // Handle system prompt - can be string or SystemPrompt object
-        match config.SystemPrompt with
-        | Some systemPrompt -> jsObj?systemPrompt <- systemPrompt
-        | None -> ()
-        
-        // Convert state map to JavaScript object if provided
-        match config.State with
-        | Some state -> 
-            jsObj?state <- mapToJS state
-        | None -> ()
-        
-        // Set printer boolean if provided
-        match config.Printer with
-        | Some printer -> jsObj?printer <- printer
-        | None -> ()
-        
-        // Set conversation manager if provided
-        match config.ConversationManager with
-        | Some conversationManager -> jsObj?conversationManager <- conversationManager
-        | None -> ()
-        
-        // Set hooks array if provided
-        match config.Hooks with
-        | Some hooks -> jsObj?hooks <- (hooks |> List.toArray)
-        | None -> ()
-        
-        jsObj
-
-    /// <summary>
-    /// Converts F# OpenAIModelConfig record to JavaScript object for the OpenAI SDK.
-    /// Handles optional model parameters and client configuration pass-through.
-    /// The modelId is required, while all other parameters are optional.
-    /// </summary>
-    /// <param name="config">F# OpenAIModelConfig record with Option types</param>
-    /// <returns>JavaScript object compatible with OpenAI SDK constructor</returns>
-    let openAIModelConfigToJS (config: OpenAIModelConfig): obj =
-        let mutable jsObj = !!{| modelId = config.ModelId |}
-        
-        // Set API key if provided (falls back to environment variable if not)
-        match config.ApiKey with
-        | Some apiKey -> jsObj?apiKey <- apiKey
-        | None -> ()
-        
-        // Set optional model parameters
-        match config.Temperature with
-        | Some temperature -> jsObj?temperature <- temperature
-        | None -> ()
-        
-        match config.MaxTokens with
-        | Some maxTokens -> jsObj?maxTokens <- maxTokens
-        | None -> ()
-        
-        match config.TopP with
-        | Some topP -> jsObj?topP <- topP
-        | None -> ()
-        
-        match config.FrequencyPenalty with
-        | Some frequencyPenalty -> jsObj?frequencyPenalty <- frequencyPenalty
-        | None -> ()
-        
-        match config.PresencePenalty with
-        | Some presencePenalty -> jsObj?presencePenalty <- presencePenalty
-        | None -> ()
-        
-        // Pass through client configuration if provided
-        match config.ClientConfig with
-        | Some clientConfig -> jsObj?clientConfig <- clientConfig
-        | None -> ()
-        
-        jsObj
-
