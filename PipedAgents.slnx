@@ -34,6 +34,13 @@
     </Project>
     <Project Path="examples/Strands/Agent_Step01_Running/Target/Target.fsproj" />
   </Folder>
+  <Folder Name="/examples/Strands/Agent_Step02_MultiturnConversation/">
+    <Project Path="examples/Strands/Agent_Step02_MultiturnConversation/Baseline/Baseline.esproj">
+      <BuildType Project="Debug" />
+      <Build />
+    </Project>
+    <Project Path="examples/Strands/Agent_Step02_MultiturnConversation/Target/Target.fsproj" />
+  </Folder>
   <Folder Name="/src/">
     <Project Path="src/PipedAgents.MAF/PipedAgents.MAF.fsproj" />
     <Project Path="src/PipedAgents.Strands.JS/PipedAgents.Strands.JS.fsproj" />

@@ -22,6 +22,14 @@ and [<AllowNullLiteral>] AsyncGenerator<'T> =
     inherit AsyncIterator<'T>
     inherit AsyncIterable<'T>
 
+module AsyncIterable =
+    let iter (action: 'T -> unit) (iterable: AsyncIterable<'T>): JS.Promise<unit> =
+        emitJsExpr () """(async () => {
+        for await (const value of iterable) {
+            action(value);
+        }
+    })()"""
+
 /// <summary>
 /// Message role in a conversation between user and assistant.
 /// </summary>
