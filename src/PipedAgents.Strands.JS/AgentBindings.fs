@@ -4,6 +4,24 @@ open System
 open Fable.Core
 open Fable.Core.JsInterop
 
+type [<AllowNullLiteral>] AsyncIterable<'T> =
+    inherit JS.AsyncIterable
+    [<Emit("$0[Symbol.asyncIterator]()")>]
+    abstract asyncIterator: unit -> AsyncIterator<'T>
+
+and [<AllowNullLiteral>] IteratorResult<'T> =
+    abstract value: 'T with get, set
+    abstract ``done``: bool with get, set
+
+and [<AllowNullLiteral>] AsyncIterator<'T> =
+    abstract next: unit -> JS.Promise<IteratorResult<'T>>
+    abstract ``return``: value: 'T -> JS.Promise<IteratorResult<'T>>
+    abstract throw: e: obj -> JS.Promise<IteratorResult<'T>>
+
+and [<AllowNullLiteral>] AsyncGenerator<'T> =
+    inherit AsyncIterator<'T>
+    inherit AsyncIterable<'T>
+
 /// <summary>
 /// Core type definitions for F# Fable bindings to the Strands SDK.
 /// These types mirror the TypeScript interfaces while following F# conventions.
@@ -13,7 +31,8 @@ module Types =
     /// <summary>
     /// Message role in a conversation between user and assistant.
     /// </summary>
-    type MessageRole =
+    [<StringEnum>]
+    type Role =
         /// Human input message
         | User
         /// AI assistant response message
@@ -23,6 +42,7 @@ module Types =
     /// Content block types that can appear in messages.
     /// Represents different types of content including text, tool usage, media, and metadata.
     /// </summary>
+    [<TypeScriptTaggedUnion("type")>]
     type ContentBlock =
         /// Plain text content
         | TextBlock of text: string
@@ -45,115 +65,96 @@ module Types =
         /// Structured JSON data
         | JsonBlock of json: obj
 
+    [<TypeScriptTaggedUnion("type")>]
+    type ContentBlockDelta =
+        | TextDelta of text: string
+        | ToolUseDelta of input: string
+        | ReasoningDelta of text: string option * signature: string option * redactedContent: byte array option
+
     /// <summary>
     /// A message in the conversation history.
     /// Contains the sender role and an array of content blocks.
     /// </summary>
     type Message = {
         /// The role of the message sender (user or assistant)
-        Role: MessageRole
+        Role: Role
         /// Array of content blocks that make up this message
         Content: ContentBlock array
     }
 
-    /// <summary>
-    /// Result returned by agent execution containing the final state.
-    /// </summary>
-    type AgentResult = {
-        /// Reason why the model stopped generating (e.g., "endTurn", "toolUse")
-        StopReason: string
-        /// The last message added to the conversation
-        LastMessage: Message
-        /// Complete conversation history
-        Messages: Message array
-        /// Final agent state
-        State: obj
-    }
+    type Usage =
+        /// Number of input tokens processed
+        abstract inputTokens: int
+        /// Number of output tokens generated
+        abstract outputTokens: int
+        /// Total number of tokens (input + output)
+        abstract totalTokens: int
+        /// Number of cache read input tokens (optional)
+        abstract cacheReadInputTokens: int option
+        /// Number of cache write input tokens (optional)
+        abstract cacheWriteInputTokens: int option
+
+    type Metrics =
+        /// Latency in milliseconds.
+        abstract latencyMs: int
+
+    type AgentData =
+        /// Agent state storage accessible to tools and application logic.
+        abstract state: obj
+        /// The conversation history of messages between user and assistant.
+        abstract messages: Message array
 
     /// <summary>
     /// Stream events that can be emitted during agent execution.
     /// Provides real-time updates on agent processing steps.
     /// </summary>
+    [<TypeScriptTaggedUnion("type")>]
     type AgentStreamEvent =
-        /// A new message was added to the conversation
-        | MessageAdded of Message
-        /// Incremental content update during streaming
-        | ContentBlockDelta of delta: obj
-        /// Tool execution started
-        | ToolExecutionStarted of toolName: string
-        /// Tool execution completed
-        | ToolExecutionCompleted of result: obj
         /// Model streaming event
-        | ModelStreamEvent of event: obj
-        /// Before agent invocation hook event
-        | BeforeInvocation of event: obj
-        /// After agent invocation hook event
-        | AfterInvocation of event: obj
-        /// Before model call hook event
-        | BeforeModelCall of event: obj
-        /// After model call hook event
-        | AfterModelCall of event: obj
-        /// Before tools execution hook event
-        | BeforeToolsExecution of event: obj
-        /// After tools execution hook event
-        | AfterToolsExecution of event: obj
-        /// Before individual tool call hook event
-        | BeforeToolCall of event: obj
-        /// After individual tool call hook event
-        | AfterToolCall of event: obj
+        | ModelMessageStartEvent of role: Role
+        | ModelContentBlockStartEvent of start: obj
+        | ModelContentBlockDeltaEvent of delta: ContentBlockDelta
+        | ModelContentBlockStopEvent
+        | ModelMessageStopEvent of stopReason: string * additionalModelResponseFields: obj
+        | ModelMetadataEvent of usage: Usage * metrics: Metrics * trace : obj
+        /// Content block
+        | TextBlock of text: string
+        | ToolUseBlock of id: string * name: string * input: obj
+        | ToolResultBlock of toolUseId: string * status: string * content: obj array * error: exn option
+        | ReasoningBlock of text: string option * signature: string option * redactedContent: byte array option
+        | CachePointBlock of cacheType: string
+        | GuardContentBlock of text: obj option * image: obj option
+        | ImageBlock of format: string * source: obj
+        | VideoBlock of format: string * source: obj
+        | DocumentBlock of format: string * source: obj
+        | JsonBlock of json: obj
+        /// Tool stream event
+        | ToolStreamEvent of obj
+        /// BeforeInvocation event
+        | BeforeInvocationEvent of agent: AgentData
+        /// AfterInvocation event
+        | AfterInvocationEvent of agent: AgentData
+        /// BeforeModelCall event
+        | BeforeModelCallEvent of agent: AgentData
+        /// AfterModelCall event
+        | AfterModelCallEvent of agent: AgentData
+        /// BeforeToolsExecution event
+        | BeforeToolsEvent of agent: AgentData * message: Message
+        /// AfterToolsExecution event
+        | AfterToolsEvent of agent: AgentData * message: Message
+        /// BeforeToolCall event
+        | BeforeToolCallEvent of agent: AgentData * toolUse: {| name: string; toolUseId: string; input: obj|} * tool: obj
+        /// AfterToolCall event
+        | AfterToolCallEvent of agent: AgentData * toolUse: {| name: string; toolUseId: string; input: obj|} * tool: obj * result: obj * error: obj option
+        /// Message added event
+        | MessageAddedEvent of agent: AgentData * message: Message
+        /// ModelStreamEventHook
+        | ModelStreamEventHook of agent: AgentData * event: obj
         /// Final agent result event
-        | AgentResultEvent of AgentResult
+        | AgentResult of stopReason: string * lastMessage: Message
 
-    /// <summary>
-    /// Custom exception for Strands SDK errors with context information.
-    /// </summary>
-    exception StrandsSDKException of message: string * innerException: exn option
-
-/// <summary>
-/// Internal configuration conversion utilities.
-/// </summary>
-module internal InternalConversion =
-    open Types
-
-    let messageRoleToJS (role: MessageRole): string =
-        match role with
-        | User -> "user"
-        | Assistant -> "assistant"
-
-    let contentBlockToJS (contentBlock: ContentBlock): obj =
-        match contentBlock with
-        | TextBlock text -> !!{| ``type`` = "text"; text = text |}
-        | ToolUseBlock (id, name, input) -> !!{| ``type`` = "toolUse"; id = id; name = name; input = input |}
-        | ToolResultBlock (toolUseId, status, content, error) ->
-            let baseObj = {| ``type`` = "toolResult"; toolUseId = toolUseId; status = status; content = content |}
-            match error with
-            | Some err -> !!{| baseObj with error = err |}
-            | None -> !!baseObj
-        | ReasoningBlock (text, signature, redactedContent) ->
-            let mutable jsObj = !!{| ``type`` = "reasoning" |}
-            match text with Some t -> jsObj?text <- t | None -> ()
-            match signature with Some s -> jsObj?signature <- s | None -> ()
-            match redactedContent with Some rc -> jsObj?redactedContent <- rc | None -> ()
-            jsObj
-        | CachePointBlock cacheType -> !!{| ``type`` = "cachePoint"; cacheType = cacheType |}
-        | GuardContentBlock (text, image) ->
-            let mutable jsObj = !!{| ``type`` = "guardContent" |}
-            match text with Some t -> jsObj?text <- t | None -> ()
-            match image with Some i -> jsObj?image <- i | None -> ()
-            jsObj
-        | ImageBlock (format, source) -> !!{| ``type`` = "image"; format = format; source = source |}
-        | VideoBlock (format, source) -> !!{| ``type`` = "video"; format = format; source = source |}
-        | DocumentBlock (format, source) -> !!{| ``type`` = "document"; format = format; source = source |}
-        | JsonBlock json -> !!{| ``type`` = "json"; json = json |}
-
-    let messageToJS (message: Message): obj =
-        !!{|
-            role = messageRoleToJS message.Role
-            content = (message.Content |> Array.map contentBlockToJS)
-        |}
 
 open Types
-open InternalConversion
 
 /// <summary>
 /// Agent configuration options.
@@ -165,7 +166,7 @@ type AgentOptions() =
     /// The model instance or string model ID to use
     member this.Model with set (value: obj) = jsObj?model <- value
     /// Initial conversation history
-    member this.Messages with set (value: Message array) = jsObj?messages <- (value |> Array.map messageToJS)
+    member this.Messages with set (value: Message array) = jsObj?messages <- value
     /// Tools available to the agent (nested arrays are flattened)
     member this.Tools with set (value: obj array) = jsObj?tools <- value
     /// System prompt to guide agent behavior
@@ -234,7 +235,7 @@ module Interop =
         /// </summary>
         /// <param name="args">Input arguments - can be string, ContentBlock[], or Message[]</param>
         /// <returns>AsyncGenerator that yields AgentStreamEvent objects</returns>
-        member _.stream(args: obj): obj = jsNative
+        member _.stream(args: obj): AsyncGenerator<'T> = jsNative
 
     /// <summary>
     /// Low-level JavaScript binding for the OpenAIModel class from @strands-agents/sdk/openai.

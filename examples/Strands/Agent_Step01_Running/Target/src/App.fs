@@ -28,7 +28,7 @@ let run () =
     // Invoke the agent with pirate joke request
     promise {
         let! result = Agent.invoke "Tell me a joke about a pirate." agent
-        console.log(result.ToString())
+        console.log(string result)
         console.log("Agent call completed.")
     }
 
@@ -53,29 +53,24 @@ let stream () =
     promise {
         console.log("Agent response stream:")
         
-        let streamGenerator = Agent.stream "Tell me a joke about a pirate." agent
+        let enumerator = Agent.stream "Tell me a joke about a pirate." agent
         
         // Process the async generator
         let mutable isDone = false
         while not isDone do
-            let! result = streamGenerator?next()
-            isDone <- result?``done``
-            if not isDone then
-                let event = result?value
-                // Check if this is a modelContentBlockDeltaEvent with textDelta
-                let eventType = event?``type``
-                if eventType = "modelContentBlockDeltaEvent" then
-                    let delta = event?delta
-                    let deltaType = delta?``type``
-                    if deltaType = "textDelta" then
-                        process.stdout.write delta?text |> ignore
-        
+            let! result = enumerator.next()
+            isDone <- result.``done``
+            match result.value with
+            | ModelContentBlockDeltaEvent (TextDelta txt) ->
+                process.stdout.write txt |> ignore
+            | _ ->
+                ()
         console.log("\nAgent call completed.")
     }
 
 [<EntryPoint>]
 let entryPoint _ =
-    run().catch(fun ex ->
+    stream().catch(fun ex ->
         console.error(ex)
         process.exitCode <- 1
     ) |> ignore

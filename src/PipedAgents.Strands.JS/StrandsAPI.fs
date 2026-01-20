@@ -56,7 +56,7 @@ module Agent =
     /// <param name="agent">Agent instance to stream</param>
     /// <returns>JavaScript AsyncGenerator that yields AgentStreamEvent objects and returns AgentResult</returns>
     /// <exception cref="StrandsSDKException">Thrown when agent streaming fails</exception>
-    let stream (input: string) (agent: Agent) : obj =
+    let stream (input: string) (agent: Agent) =
         agent.JSAgent.stream(input)
     
     /// <summary>
