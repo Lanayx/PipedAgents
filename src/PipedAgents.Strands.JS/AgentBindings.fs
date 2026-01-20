@@ -1,4 +1,4 @@
-namespace PipedAgents.Strands.JS
+namespace PipedAgents.Strands
 
 open System
 open Fable.Core
@@ -23,138 +23,182 @@ and [<AllowNullLiteral>] AsyncGenerator<'T> =
     inherit AsyncIterable<'T>
 
 /// <summary>
-/// Core type definitions for F# Fable bindings to the Strands SDK.
-/// These types mirror the TypeScript interfaces while following F# conventions.
+/// Message role in a conversation between user and assistant.
 /// </summary>
-module Types =
+[<StringEnum>]
+type Role =
+    | User
+    | Assistant
 
-    /// <summary>
-    /// Message role in a conversation between user and assistant.
-    /// </summary>
-    [<StringEnum>]
-    type Role =
-        /// Human input message
-        | User
-        /// AI assistant response message
-        | Assistant
+/// <summary>
+/// Content block types that can appear in messages.
+/// Represents different types of content including text, tool usage, media, and metadata.
+/// </summary>
+[<TypeScriptTaggedUnion("type")>]
+type ContentBlock =
+    /// Plain text content
+    | TextBlock of text: string
+    /// Tool usage request with parameters
+    | ToolUseBlock of id: string * name: string * input: obj
+    /// Result from tool execution
+    | ToolResultBlock of toolUseId: string * status: string * content: obj array * error: exn option
+    /// AI reasoning process content (may be redacted)
+    | ReasoningBlock of text: string option * signature: string option * redactedContent: byte array option
+    /// Cache point marker for prompt caching
+    | CachePointBlock of cacheType: string
+    /// Content for guardrail evaluation
+    | GuardContentBlock of text: obj option * image: obj option
+    /// Image content with format and source
+    | ImageBlock of format: string * source: obj
+    /// Video content with format and source
+    | VideoBlock of format: string * source: obj
+    /// Document content with format and source
+    | DocumentBlock of format: string * source: obj
+    /// Structured JSON data
+    | JsonBlock of json: obj
 
-    /// <summary>
-    /// Content block types that can appear in messages.
-    /// Represents different types of content including text, tool usage, media, and metadata.
-    /// </summary>
-    [<TypeScriptTaggedUnion("type")>]
-    type ContentBlock =
-        /// Plain text content
-        | TextBlock of text: string
-        /// Tool usage request with parameters
-        | ToolUseBlock of id: string * name: string * input: obj
-        /// Result from tool execution
-        | ToolResultBlock of toolUseId: string * status: string * content: obj array * error: exn option
-        /// AI reasoning process content (may be redacted)
-        | ReasoningBlock of text: string option * signature: string option * redactedContent: byte array option
-        /// Cache point marker for prompt caching
-        | CachePointBlock of cacheType: string
-        /// Content for guardrail evaluation
-        | GuardContentBlock of text: obj option * image: obj option
-        /// Image content with format and source
-        | ImageBlock of format: string * source: obj
-        /// Video content with format and source
-        | VideoBlock of format: string * source: obj
-        /// Document content with format and source
-        | DocumentBlock of format: string * source: obj
-        /// Structured JSON data
-        | JsonBlock of json: obj
+[<TypeScriptTaggedUnion("type")>]
+type ContentBlockDelta =
+    | TextDelta of text: string
+    | ToolUseDelta of input: string
+    | ReasoningDelta of text: string option * signature: string option * redactedContent: byte array option
 
-    [<TypeScriptTaggedUnion("type")>]
-    type ContentBlockDelta =
-        | TextDelta of text: string
-        | ToolUseDelta of input: string
-        | ReasoningDelta of text: string option * signature: string option * redactedContent: byte array option
+/// <summary>
+/// A message in the conversation history.
+/// Contains the sender role and an array of content blocks.
+/// </summary>
+type Message = {
+    Role: Role
+    Content: ContentBlock array
+}
 
-    /// <summary>
-    /// A message in the conversation history.
-    /// Contains the sender role and an array of content blocks.
-    /// </summary>
-    type Message = {
-        /// The role of the message sender (user or assistant)
-        Role: Role
-        /// Array of content blocks that make up this message
-        Content: ContentBlock array
-    }
+type Usage =
+    /// Number of input tokens processed
+    abstract inputTokens: int
+    /// Number of output tokens generated
+    abstract outputTokens: int
+    /// Total number of tokens (input + output)
+    abstract totalTokens: int
+    /// Number of cache read input tokens (optional)
+    abstract cacheReadInputTokens: int option
+    /// Number of cache write input tokens (optional)
+    abstract cacheWriteInputTokens: int option
 
-    type Usage =
-        /// Number of input tokens processed
-        abstract inputTokens: int
-        /// Number of output tokens generated
-        abstract outputTokens: int
-        /// Total number of tokens (input + output)
-        abstract totalTokens: int
-        /// Number of cache read input tokens (optional)
-        abstract cacheReadInputTokens: int option
-        /// Number of cache write input tokens (optional)
-        abstract cacheWriteInputTokens: int option
+type Metrics =
+    /// Latency in milliseconds.
+    abstract latencyMs: int
 
-    type Metrics =
-        /// Latency in milliseconds.
-        abstract latencyMs: int
+type AgentData =
+    /// Agent state storage accessible to tools and application logic.
+    abstract state: obj
+    /// The conversation history of messages between user and assistant.
+    abstract messages: Message array
 
-    type AgentData =
-        /// Agent state storage accessible to tools and application logic.
-        abstract state: obj
-        /// The conversation history of messages between user and assistant.
-        abstract messages: Message array
+type AgentResult =
+    /// Reason for stopping the agent execution.
+    abstract stopReason: string
+    /// The last message generated by the agent.
+    abstract lastMessage: Message
 
-    /// <summary>
-    /// Stream events that can be emitted during agent execution.
-    /// Provides real-time updates on agent processing steps.
-    /// </summary>
-    [<TypeScriptTaggedUnion("type")>]
-    type AgentStreamEvent =
-        /// Model streaming event
-        | ModelMessageStartEvent of role: Role
-        | ModelContentBlockStartEvent of start: obj
-        | ModelContentBlockDeltaEvent of delta: ContentBlockDelta
-        | ModelContentBlockStopEvent
-        | ModelMessageStopEvent of stopReason: string * additionalModelResponseFields: obj
-        | ModelMetadataEvent of usage: Usage * metrics: Metrics * trace : obj
-        /// Content block
-        | TextBlock of text: string
-        | ToolUseBlock of id: string * name: string * input: obj
-        | ToolResultBlock of toolUseId: string * status: string * content: obj array * error: exn option
-        | ReasoningBlock of text: string option * signature: string option * redactedContent: byte array option
-        | CachePointBlock of cacheType: string
-        | GuardContentBlock of text: obj option * image: obj option
-        | ImageBlock of format: string * source: obj
-        | VideoBlock of format: string * source: obj
-        | DocumentBlock of format: string * source: obj
-        | JsonBlock of json: obj
-        /// Tool stream event
-        | ToolStreamEvent of obj
-        /// BeforeInvocation event
-        | BeforeInvocationEvent of agent: AgentData
-        /// AfterInvocation event
-        | AfterInvocationEvent of agent: AgentData
-        /// BeforeModelCall event
-        | BeforeModelCallEvent of agent: AgentData
-        /// AfterModelCall event
-        | AfterModelCallEvent of agent: AgentData
-        /// BeforeToolsExecution event
-        | BeforeToolsEvent of agent: AgentData * message: Message
-        /// AfterToolsExecution event
-        | AfterToolsEvent of agent: AgentData * message: Message
-        /// BeforeToolCall event
-        | BeforeToolCallEvent of agent: AgentData * toolUse: {| name: string; toolUseId: string; input: obj|} * tool: obj
-        /// AfterToolCall event
-        | AfterToolCallEvent of agent: AgentData * toolUse: {| name: string; toolUseId: string; input: obj|} * tool: obj * result: obj * error: obj option
-        /// Message added event
-        | MessageAddedEvent of agent: AgentData * message: Message
-        /// ModelStreamEventHook
-        | ModelStreamEventHook of agent: AgentData * event: obj
-        /// Final agent result event
-        | AgentResult of stopReason: string * lastMessage: Message
+type ToolSpec = {
+    /// The unique name of the tool.
+    name: string
+    /// A description of what the tool does.
+    description: string
+    /// JSON Schema defining the expected input structure for the tool.
+    inputSchema: obj option
+}
 
+type ToolUse =
+    /// The name of the tool to execute.
+    abstract name: string
+    /// Unique identifier for this tool use instance.
+    /// Used to match tool results back to their requests.
+    abstract toolUseId: string
+    /// The input parameters for the tool.
+    /// Must be JSON-serializable.
+    abstract input: obj
 
-open Types
+type ToolContext =
+    /// The tool use request that triggered this tool execution.
+    /// Contains the tool name, toolUseId, and input parameters.
+    abstract toolUse: ToolUse
+    /// The agent instance that is executing this tool.
+    /// Provides access to agent state and other agent-level information.
+    abstract agent: AgentData
+
+type ToolStreamEventData =
+    /// Caller-provided data for the progress update.
+    /// Can be any type of data the tool wants to report.
+    abstract data: obj option
+
+[<TypeScriptTaggedUnion("type")>]
+type ToolResultContent =
+    | TextBlock of text: string
+    | JsonBlock of json: obj
+
+[<StringEnum>]
+type ToolResultStatus =
+    | Success
+    | Error
+
+type ToolResult =
+    /// Unique identifier matching the tool use request.
+    abstract toolUseId: string
+    /// Status of the tool execution (e.g., "success", "error").
+    abstract status: ToolResultStatus
+    /// Array of content blocks returned by the tool.
+    abstract content: ToolResultContent array
+    /// Optional error information if the tool execution failed.
+    abstract error: exn option
+
+type Tool =
+    /// The unique name of the tool.
+    abstract name: string
+    /// Human-readable description of what the tool does.
+    abstract description: string
+    /// OpenAPI JSON specification for the tool.
+    abstract toolSpec: ToolSpec
+    /// Executes the tool with streaming support.
+    abstract stream: toolContext: ToolContext -> AsyncGenerator<ToolStreamEventData>
+
+/// <summary>
+/// Stream events that can be emitted during agent execution.
+/// Provides real-time updates on agent processing steps.
+/// </summary>
+[<TypeScriptTaggedUnion("type")>]
+type AgentStreamEvent =
+    /// Model streaming event
+    | ModelMessageStartEvent of role: Role
+    | ModelContentBlockStartEvent of start: obj
+    | ModelContentBlockDeltaEvent of delta: ContentBlockDelta
+    | ModelContentBlockStopEvent
+    | ModelMessageStopEvent of stopReason: string * additionalModelResponseFields: obj
+    | ModelMetadataEvent of usage: Usage * metrics: Metrics * trace : obj
+    /// Content block
+    | TextBlock of text: string
+    | ToolUseBlock of ToolUse
+    | ToolResultBlock of ToolResult
+    | ReasoningBlock of text: string option * signature: string option * redactedContent: byte array option
+    | CachePointBlock of cacheType: string
+    | GuardContentBlock of text: obj option * image: obj option
+    | ImageBlock of format: string * source: obj
+    | VideoBlock of format: string * source: obj
+    | DocumentBlock of format: string * source: obj
+    | JsonBlock of json: obj
+    /// Other events
+    | ToolStreamEvent of obj
+    | BeforeInvocationEvent of agent: AgentData
+    | AfterInvocationEvent of agent: AgentData
+    | BeforeModelCallEvent of agent: AgentData
+    | AfterModelCallEvent of agent: AgentData
+    | BeforeToolsEvent of agent: AgentData * message: Message
+    | AfterToolsEvent of agent: AgentData * message: Message
+    | BeforeToolCallEvent of agent: AgentData * toolUse: ToolUse * tool: Tool
+    | AfterToolCallEvent of agent: AgentData * toolUse: ToolUse * tool: Tool * result: ToolResult * error: exn option
+    | MessageAddedEvent of agent: AgentData * message: Message
+    | ModelStreamEventHook of agent: AgentData * event: obj
+    | AgentResult of AgentResult
 
 /// <summary>
 /// Agent configuration options.
@@ -163,12 +207,12 @@ open Types
 type AgentOptions() =
     let jsObj = !!{| printer = false |}
     
-    /// The model instance or string model ID to use
+    /// The model instance or string model ID to use (overrides default)
     member this.Model with set (value: obj) = jsObj?model <- value
     /// Initial conversation history
     member this.Messages with set (value: Message array) = jsObj?messages <- value
     /// Tools available to the agent (nested arrays are flattened)
-    member this.Tools with set (value: obj array) = jsObj?tools <- value
+    member this.Tools with set (value: Tool array) = jsObj?tools <- value
     /// System prompt to guide agent behavior
     member this.SystemPrompt with set (value: string) = jsObj?systemPrompt <- value
     /// Initial state values for the agent
@@ -211,46 +255,45 @@ type OpenAIClientOptions() =
 
     member internal this.ToJS() = jsObj
 
+
 /// <summary>
-/// Low-level JavaScript interop bindings for the Strands SDK.
-/// These bindings use Fable's [<Import>] attributes to access the JavaScript SDK directly.
+/// Low-level JavaScript binding for the Agent class from @strands-agents/sdk.
+/// This type provides direct access to the JavaScript Agent constructor and methods.
 /// </summary>
-module Interop =
+[<Import("Agent", "@strands-agents/sdk")>]
+type Agent(config: obj) =
+    /// <summary>
+    /// Invokes the agent with the provided input and returns a Promise of the result.
+    /// </summary>
+    /// <param name="args">Input arguments - can be string, ContentBlock[], or Message[]</param>
+    /// <returns>Promise that resolves to AgentResult</returns>
+    member _.invoke(args: string): JS.Promise<AgentResult> = jsNative
+    member _.invoke(args: ContentBlock[]): JS.Promise<AgentResult> = jsNative
+    member _.invoke(args: Message[]): JS.Promise<AgentResult> = jsNative
 
     /// <summary>
-    /// Low-level JavaScript binding for the Agent class from @strands-agents/sdk.
-    /// This type provides direct access to the JavaScript Agent constructor and methods.
+    /// Streams the agent execution, yielding events and returning the final result.
     /// </summary>
-    [<Import("Agent", "@strands-agents/sdk")>]
-    type JSAgent(config: obj) =
-        /// <summary>
-        /// Invokes the agent with the provided input and returns a Promise of the result.
-        /// </summary>
-        /// <param name="args">Input arguments - can be string, ContentBlock[], or Message[]</param>
-        /// <returns>Promise that resolves to AgentResult</returns>
-        member _.invoke(args: obj): JS.Promise<obj> = jsNative
-        
-        /// <summary>
-        /// Streams the agent execution, yielding events and returning the final result.
-        /// </summary>
-        /// <param name="args">Input arguments - can be string, ContentBlock[], or Message[]</param>
-        /// <returns>AsyncGenerator that yields AgentStreamEvent objects</returns>
-        member _.stream(args: obj): AsyncGenerator<'T> = jsNative
+    /// <param name="args">Input arguments - can be string, ContentBlock[], or Message[]</param>
+    /// <returns>AsyncGenerator that yields AgentStreamEvent objects</returns>
+    member _.stream(args: string): AsyncGenerator<AgentStreamEvent> = jsNative
+    member _.stream(args: ContentBlock[]): AsyncGenerator<AgentStreamEvent> = jsNative
+    member _.stream(args: Message[]): AsyncGenerator<AgentStreamEvent> = jsNative
+
+/// <summary>
+/// Low-level JavaScript binding for the OpenAIModel class from @strands-agents/sdk/openai.
+/// This type provides direct access to the JavaScript OpenAIModel constructor and methods.
+/// </summary>
+[<Import("OpenAIModel", "@strands-agents/sdk/openai")>]
+type JSOpenAIModel(config: obj) =
+    /// <summary>
+    /// Updates the model configuration by merging with existing settings.
+    /// </summary>
+    /// <param name="modelConfig">Configuration object with model-specific settings to update</param>
+    member _.updateConfig(modelConfig: obj): unit = jsNative
 
     /// <summary>
-    /// Low-level JavaScript binding for the OpenAIModel class from @strands-agents/sdk/openai.
-    /// This type provides direct access to the JavaScript OpenAIModel constructor and methods.
+    /// Retrieves the current model configuration.
     /// </summary>
-    [<Import("OpenAIModel", "@strands-agents/sdk/openai")>]
-    type JSOpenAIModel(config: obj) =
-        /// <summary>
-        /// Updates the model configuration by merging with existing settings.
-        /// </summary>
-        /// <param name="modelConfig">Configuration object with model-specific settings to update</param>
-        member _.updateConfig(modelConfig: obj): unit = jsNative
-        
-        /// <summary>
-        /// Retrieves the current model configuration.
-        /// </summary>
-        /// <returns>The current configuration object</returns>
-        member _.getConfig(): obj = jsNative
+    /// <returns>The current configuration object</returns>
+    member _.getConfig(): obj = jsNative

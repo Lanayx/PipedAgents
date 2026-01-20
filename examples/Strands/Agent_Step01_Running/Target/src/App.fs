@@ -5,8 +5,7 @@ module App
 open Node
 open Fable.Core.JS
 open Fable.Core.JsInterop
-open PipedAgents.Strands.JS.Types
-open PipedAgents.Strands.JS
+open PipedAgents.Strands
 
 let run () =
 
@@ -27,7 +26,7 @@ let run () =
 
     // Invoke the agent with pirate joke request
     promise {
-        let! result = Agent.invoke "Tell me a joke about a pirate." agent
+        let! result = agent.invoke "Tell me a joke about a pirate."
         console.log(string result)
         console.log("Agent call completed.")
     }
@@ -53,7 +52,7 @@ let stream () =
     promise {
         console.log("Agent response stream:")
         
-        let enumerator = Agent.stream "Tell me a joke about a pirate." agent
+        let enumerator = agent.stream "Tell me a joke about a pirate."
         
         // Process the async generator
         let mutable isDone = false
