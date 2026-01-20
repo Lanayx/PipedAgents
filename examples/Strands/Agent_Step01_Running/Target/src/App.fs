@@ -69,7 +69,7 @@ let stream () =
 
 [<EntryPoint>]
 let entryPoint _ =
-    stream().catch(fun ex ->
+    run().catch(fun ex ->
         console.error(ex)
         process.exitCode <- 1
     ) |> ignore
