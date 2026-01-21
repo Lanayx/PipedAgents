@@ -1,0 +1,17 @@
+{
+  "name": "strandstest",
+  "version": "1.0.0",
+  "scripts": {
+    "run": "node --env-file=.env --loader ts-node/esm run.ts",
+    "stream": "node --env-file=.env --loader ts-node/esm stream.ts"
+  },
+  "type": "module",
+  "dependencies": {
+    "@strands-agents/sdk": "^0.1.5"
+  },
+  "devDependencies": {
+    "ts-node": "^10.9.2",
+    "typescript": "^5.9.3",
+    "@types/node": "^25.0.9"
+  }
+}
