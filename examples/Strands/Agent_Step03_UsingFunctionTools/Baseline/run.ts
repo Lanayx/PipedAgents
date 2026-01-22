@@ -1,6 +1,7 @@
 import { Agent, tool } from '@strands-agents/sdk';
 import { OpenAIModel } from '@strands-agents/sdk/openai';
 import * as z from "zod";
+import { loggingFetch } from './loggingFetch.js';
 
 async function main() {
     // Initialize the OpenAI model
@@ -8,7 +9,8 @@ async function main() {
         modelId: process.env.MODEL_ID,
         apiKey: process.env.OPENAI_API_KEY,
         clientConfig: {
-            baseURL: process.env.OPENAI_API_BASE_URL
+            baseURL: process.env.OPENAI_API_BASE_URL,
+            fetch: loggingFetch
         }
     });
 
