@@ -37,6 +37,7 @@
   </Folder>
   <Folder Name="/examples/Strands/Agent_Step03_UsingFunctionTools/">
     <Project Path="examples/Strands/Agent_Step03_UsingFunctionTools/Baseline/Baseline.esproj" />
+    <Project Path="examples/Strands/Agent_Step03_UsingFunctionTools/Target/Target.fsproj" />
   </Folder>
   <Folder Name="/src/">
     <Project Path="src/PipedAgents.MAF/PipedAgents.MAF.fsproj" />

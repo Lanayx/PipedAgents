@@ -8,11 +8,8 @@
     "build": "dotnet fable . --outDir dist --lang javascript --sourceMaps --noCache",
     "start": "npm run build && node --env-file=.env dist/src/App.js"
   },
-  "keywords": ["fsharp", "fable", "javascript", "nodejs", "hello-world"],
-  "author": "",
-  "license": "MIT",
   "dependencies": {
     "@strands-agents/sdk": "^0.1.5",
-    "dotenv": "^16.0.0"
+    "zod": "^4.3.5"
   }
 }

@@ -330,6 +330,8 @@ type OpenAIClientOptions() =
     member this.PresencePenalty with set (value: Nullable<float>) = if value.HasValue then jsObj?presencePenalty <- value.Value
     /// Custom base URL for API requests
     member this.BaseURL with set (value: string) = (getClientConfig())?baseURL <- value
+    /// Custom fetch implementation for HTTP requests
+    member this.Fetch with set (fetch: obj) = (getClientConfig())?fetch <- fetch
     /// Request timeout in milliseconds
     member this.Timeout with set (value: Nullable<int>) = if value.HasValue then (getClientConfig())?timeout <- value.Value
 

@@ -2,77 +2,134 @@
 
 module App
 
+open Fetch
 open Node
+open Fable.Core
 open Fable.Core.JS
 open Fable.Core.JsInterop
 open PipedAgents.Strands
 
-let run () =
+let z: obj = importAll "zod"
+let tool: obj -> Tool = import "tool" "@strands-agents/sdk"
 
+[<Emit("fetch($0, $1)")>]
+let globalFetch (url: string) (options: RequestInit) : JS.Promise<Response> = jsNative
+
+// Custom fetch implementation for logging
+let loggingFetch (url: string) (options: RequestInit) : JS.Promise<Response> =
+    promise {
+        printfn $"\n[LoggingFetch] Request: {options.method} %s{url}"
+
+        if Option.isSome options.body then
+            printfn $"[LoggingFetch] Body: {options.body}"
+
+        try
+            let! response = globalFetch url options
+            printfn $"[LoggingFetch] Response Status: {response.Status}"
+
+            let clone = response.clone()
+            clone.text().``then``(fun (text: string) ->
+                printfn $"[LoggingFetch] Response Body: {text}"
+            ).catch(fun err ->
+                printfn $"[LoggingFetch] Error reading response body: {err}"
+            ) |> ignore
+
+            return response
+        with ex ->
+            printfn $"[LoggingFetch] Error: {ex}"
+            return raise ex
+    }
+
+let run () =
+    // Initialize the OpenAI model
     let modelId = process.env?MODEL_ID
-    // Create the OpenAI client with environment configuration
+    
+    // Create the OpenAI client with environment configuration and custom fetch
     let clientOptions = OpenAIClientOptions(
         ApiKey = process.env?OPENAI_API_KEY,
-        BaseURL = process.env?OPENAI_API_BASE_URL
+        BaseURL = process.env?OPENAI_API_BASE_URL,
+        Fetch = System.Func<_, _, _>(loggingFetch)
     )
+
     let client = Client.ForChatCompletionsAPI(modelId, clientOptions)
 
-    // Create the agent with joke-telling system prompt
+    // Define the weather tool
+    let weatherTool = tool(!!{|
+        name = "weather_forecast"
+        description = "Get weather forecast for a city"
+        inputSchema = z?object(!!{|
+            city = z?``string``()?describe("The name of the city")
+            days = z?number()?``default``(3)?describe("Number of days for the forecast")
+        |})
+        callback = fun (input: {| city: string; days: int |}) ->
+            $"Weather forecast for {input.city} for the next {input.days} days is cloudy with a high of 15°C"
+    |})
+
+    // Create the agent
     let agentOptions = AgentOptions(
-        SystemPrompt = "You are good at telling jokes. Write jokes with all uppercase letters."
+        SystemPrompt = "You are a helpful assistant",
+        Printer = false,
+        Tools = [| weatherTool |]
     )
 
     let agent = client.CreateAgent(agentOptions)
 
-    // Invoke the agent with pirate joke request
+    // Run the agent
     promise {
-        let! result1 = agent.invoke "Tell me a joke about a pirate."
-        printfn $"Normal version: \n{string result1}"
-        let! result2 = agent.invoke "Now tell the same joke for a kid"
-        printfn $"Child version: \n{string result2}"
-        console.log("Agent call completed.")
+        console.log("Asking for weather forecast...")
+        let! result = agent.invoke "Give me a weather forecast Amsterdam for the next five days"
+        console.log(string result)
     }
 
 let stream () =
-
+    // Initialize the OpenAI model
     let modelId = process.env?MODEL_ID
-    // Create the OpenAI client with environment configuration
+    
+    // Create the OpenAI client with environment configuration and custom fetch
     let clientOptions = OpenAIClientOptions(
         ApiKey = process.env?OPENAI_API_KEY,
-        BaseURL = process.env?OPENAI_API_BASE_URL
+        BaseURL = process.env?OPENAI_API_BASE_URL,
+        Fetch = System.Func<_, _, _>(loggingFetch)
     )
+
     let client = Client.ForChatCompletionsAPI(modelId, clientOptions)
 
-    // Create the agent with joke-telling system prompt
+    // Define the weather tool
+    let weatherTool = tool(!!{|
+        name = "weather_forecast"
+        description = "Get weather forecast for a city"
+        inputSchema = z?object(!!{|
+            city = z?``string``()?describe("The name of the city")
+            days = z?number()?``default``(3)?describe("Number of days for the forecast")
+        |})
+        callback = fun (input: {| city: string; days: int |}) ->
+            $"Weather forecast for {input.city} for the next {input.days} days is cloudy with a high of 15°C"
+    |})
+
+    // Create the agent
     let agentOptions = AgentOptions(
-        SystemPrompt = "You are good at telling jokes. Write jokes with all uppercase letters."
+        SystemPrompt = "You are a helpful assistant",
+        Printer = false,
+        Tools = [| weatherTool |]
     )
 
     let agent = client.CreateAgent(agentOptions)
 
+    // Run the agent
     promise {
-        printfn "Normal version:"
-        let enumerator1 = agent.stream "Tell me a joke about a pirate."
-        do! enumerator1 |> AsyncIterable.iter (function
+        console.log("Asking for weather forecast...\n")
+        let enumerator = agent.stream "Give me a weather forecast Amsterdam for the next five days"
+        return! enumerator |> AsyncIterable.iter (function
             | ModelContentBlockDeltaEvent (TextDelta txt) ->
                 process.stdout.write txt |> ignore
             | _ ->
                 ()
         )
-        printfn "\nChild version:"
-        let enumerator1 = agent.stream "Now tell the same joke for a kid."
-        do! enumerator1 |> AsyncIterable.iter (function
-            | ModelContentBlockDeltaEvent (TextDelta txt) ->
-                process.stdout.write txt |> ignore
-            | _ ->
-                ()
-        )
-        printfn "\nAgent call completed"
     }
 
 [<EntryPoint>]
 let entryPoint _ =
-    stream().catch(fun ex ->
+    stream().``then``(fun _ -> console.log("\nAgent call completed.")).catch(fun ex ->
         console.error(ex)
         process.exitCode <- 1
     ) |> ignore
