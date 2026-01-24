@@ -9,7 +9,6 @@ open Fable.Core.JS
 open Fable.Core.JsInterop
 open PipedAgents.Strands
 
-let z: obj = importAll "zod"
 let tool: obj -> Tool = import "tool" "@strands-agents/sdk"
 
 [<Emit("fetch($0, $1)")>]
@@ -54,12 +53,12 @@ let run () =
     let client = Client.ForChatCompletionsAPI(modelId, clientOptions)
 
     // Define the weather tool
-    let weatherTool = tool(!!{|
+    let weatherTool = tool({|
         name = "weather_forecast"
         description = "Get weather forecast for a city"
-        inputSchema = z?object(!!{|
-            city = z?``string``()?describe("The name of the city")
-            days = z?number()?``default``(3)?describe("Number of days for the forecast")
+        inputSchema = z.object({|
+            city = z.string().describe("The name of the city")
+            days = z.number().``default``(3).describe("Number of days for the forecast")
         |})
         callback = fun (input: {| city: string; days: int |}) ->
             $"Weather forecast for {input.city} for the next {input.days} days is cloudy with a high of 15°C"
@@ -95,12 +94,12 @@ let stream () =
     let client = Client.ForChatCompletionsAPI(modelId, clientOptions)
 
     // Define the weather tool
-    let weatherTool = tool(!!{|
+    let weatherTool = tool({|
         name = "weather_forecast"
         description = "Get weather forecast for a city"
-        inputSchema = z?object(!!{|
-            city = z?``string``()?describe("The name of the city")
-            days = z?number()?``default``(3)?describe("Number of days for the forecast")
+        inputSchema = z.object({|
+            city = z.string().describe("The name of the city")
+            days = z.number().``default``(3).describe("Number of days for the forecast")
         |})
         callback = fun (input: {| city: string; days: int |}) ->
             $"Weather forecast for {input.city} for the next {input.days} days is cloudy with a high of 15°C"
@@ -129,7 +128,7 @@ let stream () =
 
 [<EntryPoint>]
 let entryPoint _ =
-    stream().``then``(fun _ -> console.log("\nAgent call completed.")).catch(fun ex ->
+    run().catch(fun ex ->
         console.error(ex)
         process.exitCode <- 1
     ) |> ignore

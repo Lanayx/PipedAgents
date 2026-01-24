@@ -30,6 +30,7 @@
     </ItemGroup>
 
     <ItemGroup>
+        <Compile Include="ZodBindings.fs" />
         <Compile Include="AgentBindings.fs" />
         <Compile Include="StrandsAPI.fs" />
     </ItemGroup>
