@@ -11,15 +11,15 @@
     </ItemGroup>
 
     <ItemGroup>
-        <ProjectReference Include="..\..\..\src\PipedAgents.MAF\PipedAgents.MAF.fsproj" />
         <ProjectReference Include="..\Shared\Shared.fsproj" />
     </ItemGroup>
 
     <ItemGroup>
-      <PackageReference Include="OpenTelemetry.Exporter.Console" Version="1.15.0" />
-      <PackageReference Include="FSharp.Control.TaskSeq" Version="0.4.0" />
-      <PackageReference Include="ModelContextProtocol" Version="0.6.0-preview.1" />
-      <PackageReference Include="Microsoft.Extensions.Hosting" Version="10.0.2" />
+        <PackageReference Include="PipedAgents.MAF" Version="0.1.0-alpha" />
+        <PackageReference Include="OpenTelemetry.Exporter.Console" Version="1.15.0" />
+        <PackageReference Include="FSharp.Control.TaskSeq" Version="0.4.0" />
+        <PackageReference Include="ModelContextProtocol" Version="0.6.0-preview.1" />
+        <PackageReference Include="Microsoft.Extensions.Hosting" Version="10.0.2" />
     </ItemGroup>
 
 </Project>

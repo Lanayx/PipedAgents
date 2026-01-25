@@ -13,13 +13,10 @@
   </ItemGroup>
 
   <ItemGroup>
+    <PackageReference Include="PipedAgents.Strands.JS" Version="0.1.0-alpha" />
     <PackageReference Include="Fable.Core" Version="5.0.0-beta.4" />
     <PackageReference Include="Fable.Node" Version="1.6.0" />
     <PackageReference Include="Fable.Promise" Version="3.2.0" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <ProjectReference Include="..\..\..\..\src\PipedAgents.Strands.JS\PipedAgents.Strands.JS.fsproj" />
   </ItemGroup>
 
 </Project>

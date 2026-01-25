@@ -11,8 +11,11 @@
     </ItemGroup>
 
     <ItemGroup>
-      <ProjectReference Include="..\..\..\src\PipedAgents.MAF\PipedAgents.MAF.fsproj" />
-      <ProjectReference Include="..\Shared\Shared.fsproj" />
+        <ProjectReference Include="..\Shared\Shared.fsproj" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <PackageReference Include="PipedAgents.MAF" Version="0.1.0-alpha" />
     </ItemGroup>
 
 </Project>
