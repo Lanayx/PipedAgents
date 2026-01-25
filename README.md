@@ -13,3 +13,7 @@ Currently in alpha state.
 - Chat Completions API (OpenAI)
 - Responses API (OpenAI)
 - Messages API (Anthropic)
+
+## Examples
+
+See the [examples folder](./examples) for usage examples.
