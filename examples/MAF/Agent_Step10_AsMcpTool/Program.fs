@@ -28,7 +28,7 @@ module Baseline =
         let responseClient = client.GetResponsesClient(Environment.GetEnvironmentVariable "MODEL_ID")
         let agent =
             responseClient
-                .CreateAIAgent(
+                .AsAIAgent(
                     instructions = "You are good at telling jokes, and you always start each joke with 'Aye aye, captain!'.",
                     name = "Joker")
 

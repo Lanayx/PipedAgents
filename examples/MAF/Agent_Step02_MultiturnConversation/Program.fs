@@ -24,22 +24,20 @@ module BaseLine =
         )
         let client = OpenAI.OpenAIClient(key, options)
         let responseClient = client.GetResponsesClient(Environment.GetEnvironmentVariable "MODEL_ID")
-        let agent = responseClient.CreateAIAgent(ChatClientAgentOptions(
+        let agent = responseClient.AsAIAgent(ChatClientAgentOptions(
             Name = "Joker",
             ChatOptions = ChatOptions(
                 Instructions = "You are good at telling jokes.",
                 RawRepresentationFactory = fun _ -> CreateResponseOptions(StoredOutputEnabled = false)
             )
         ))
-        let thread = agent.GetNewThread()
-        agent.RunAsync("Tell me a joke about a pirate.", thread)
-        |> _.GetAwaiter().GetResult()
-        |> string
-        |> printfn "%s"
-        agent.RunAsync("Now tell the same joke for a kid", thread)
-        |> _.GetAwaiter().GetResult()
-        |> string
-        |> printfn "%s"
+        +task{
+            let! thread = agent.GetNewThreadAsync()
+            let! joke = agent.RunAsync("Tell me a joke about a pirate.", thread)
+            joke |> string |> printfn "%s"
+            let! kidJoke = agent.RunAsync("Now tell the same joke for a kid", thread)
+            kidJoke |> string |> printfn "%s"
+        }
 
 
 module Target =

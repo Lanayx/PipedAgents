@@ -41,11 +41,10 @@ module Baseline =
         let responseClient = client.GetResponsesClient(Environment.GetEnvironmentVariable "MODEL_ID")
         
         // Create the ChatClientAgent with the specified name and instructions.
-        let agent = responseClient.CreateAIAgent(name = "HelpfulAssistant", instructions = "You are a helpful assistant.")
+        let agent = responseClient.AsAIAgent(name = "HelpfulAssistant", instructions = "You are a helpful assistant.")
 
         // Set PersonInfo as the type parameter of RunAsync method to specify the expected structured output from the agent and invoke the agent with some unstructured input.
-        let response = agent.RunAsync<PersonInfo>("Please provide information about fictional character John Smith, who is a 35-year-old software engineer.")
-                       |> _.GetAwaiter().GetResult()
+        let response = +(agent.RunAsync<PersonInfo>("Please provide information about fictional character John Smith, who is a 35-year-old software engineer."))
 
         // Access the structured output via the Result property of the agent response.
         printfn "Assistant Output:"
@@ -81,9 +80,9 @@ module Target =
                     Instructions = "You are a helpful assistant",
                     ResponseFormat = ChatResponseFormat.ForJsonSchema<PersonInfo>(),
                     CreateRawOptions = (fun _ -> CreateResponseOptions(
-                                                     ReasoningOptions = ResponseReasoningOptions(
-                                                                            ReasoningEffortLevel = ResponseReasoningEffortLevel.Minimal)
-                                                     ))
+                        ReasoningOptions = ResponseReasoningOptions(
+                            ReasoningEffortLevel = ResponseReasoningEffortLevel.Minimal
+                    )))
                 )
             )
             
@@ -91,7 +90,7 @@ module Target =
             // Streaming agent interaction with structured output.
             let updates = agent.RunStreamingAsync("Please provide information about fictional character John Smith, who is a 35-year-old software engineer.")
             
-            let! responseStreaming = updates.ToAgentRunResponseAsync()
+            let! responseStreaming = updates.ToAgentResponseAsync()
             let personInfo = responseStreaming.Deserialize<PersonInfo>(JsonSerializerOptions.Web)
 
             printfn "Assistant Output (Target Streaming):"
@@ -100,5 +99,4 @@ module Target =
             printfn $"Occupation: {personInfo.Occupation}"
         }
 
-Target.runStreaming()
-
+Target.run()

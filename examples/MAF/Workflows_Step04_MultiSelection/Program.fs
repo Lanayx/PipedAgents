@@ -148,7 +148,7 @@ type DatabaseAccessExecutor() =
 
             // Not using the `WorkflowCompletedEvent` because this is not the end of the workflow.
             // The end of the workflow is signaled by the `SendEmailExecutor` or the `HandleUnknownExecutor`.
-            return! context.AddEventAsync(DatabaseEvent($"Email {message.EmailId} saved to database."), cancellationToken)
+            do! context.AddEventAsync(DatabaseEvent($"Email {message.EmailId} saved to database."), cancellationToken)
         } |> ValueTask<unit>
 
 let LongEmailThreshold = 100
@@ -188,15 +188,15 @@ module BaseLine =
         let client = OpenAI.OpenAIClient(key, options)
         let chatClient = client.GetResponsesClient(Environment.GetEnvironmentVariable "MODEL_ID")
 
-        let spamDetectionAgent = chatClient.CreateAIAgent(ChatClientAgentOptions(ChatOptions = ChatOptions(
-                                    Instructions = "You are a spam detection assistant that identifies spam emails.",
-                                    ResponseFormat = ChatResponseFormat.ForJsonSchema<AnalysisResult>())))
-        let emailAssistantAgent = chatClient.CreateAIAgent(ChatClientAgentOptions(ChatOptions = ChatOptions(
-                                    Instructions = "You are an email assistant that helps users draft responses to emails with professionalism.",
-                                    ResponseFormat = ChatResponseFormat.ForJsonSchema<EmailResponse>())))
-        let emailSummaryAgent = chatClient.CreateAIAgent(ChatClientAgentOptions(ChatOptions = ChatOptions(
-                                    Instructions = "You are an assistant that helps users summarize emails.",
-                                    ResponseFormat = ChatResponseFormat.ForJsonSchema<EmailSummary>())))
+        let spamDetectionAgent = chatClient.AsAIAgent(ChatClientAgentOptions(ChatOptions = ChatOptions(
+                                     Instructions = "You are a spam detection assistant that identifies spam emails.",
+                                     ResponseFormat = ChatResponseFormat.ForJsonSchema<AnalysisResult>())))
+        let emailAssistantAgent = chatClient.AsAIAgent(ChatClientAgentOptions(ChatOptions = ChatOptions(
+                                     Instructions = "You are an email assistant that helps users draft responses to emails with professionalism.",
+                                     ResponseFormat = ChatResponseFormat.ForJsonSchema<EmailResponse>())))
+        let emailSummaryAgent = chatClient.AsAIAgent(ChatClientAgentOptions(ChatOptions = ChatOptions(
+                                     Instructions = "You are an assistant that helps users summarize emails.",
+                                     ResponseFormat = ChatResponseFormat.ForJsonSchema<EmailSummary>())))
 
         let emailAnalysisExecutor = EmailAnalysisExecutor(spamDetectionAgent).BindExecutor()
         let emailAssistantExecutor = EmailAssistantExecutor(emailAssistantAgent).BindExecutor()

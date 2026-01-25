@@ -30,7 +30,7 @@ module Baseline =
         let client = OpenAI.OpenAIClient(key, options)
         let responseClient = client.GetResponsesClient(Environment.GetEnvironmentVariable "MODEL_ID")
         let weatherAgent =
-            responseClient.CreateAIAgent(
+            responseClient.AsAIAgent(
                 ChatClientAgentOptions(
                     Name = "WeatherAgent",
                     Description = "An agent that answers questions about the weather.",
@@ -43,7 +43,7 @@ module Baseline =
                 )
             )
         let frenchAgent =
-            responseClient.CreateAIAgent(
+            responseClient.AsAIAgent(
                 ChatClientAgentOptions(
                     ChatOptions =
                         ChatOptions(

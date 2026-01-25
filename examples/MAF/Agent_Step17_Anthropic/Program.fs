@@ -1,9 +1,10 @@
 #nowarn "57"
 
 open System
-open Anthropic
+open Microsoft.Agents.AI
+open global.Anthropic
 open PipedAgents.MAF
-open Anthropic.Core
+open global.Anthropic.Core
 open Shared
 open PipedAgents.MAF.Anthropic
 
@@ -18,12 +19,11 @@ module BaseLine =
             AuthToken = Environment.GetEnvironmentVariable "ANTHROPIC_AUTH_TOKEN"
         )
         let client = AnthropicClient(options)
-        let agent = client.CreateAIAgent(
+        let agent = client.AsAIAgent(
             model = Environment.GetEnvironmentVariable "MODEL_ID",
             instructions = "You are good at telling jokes. Write jokes with all uppercase letters.",
             name = "Joker")
-        agent.RunAsync("Tell me a joke about a pirate.")
-        |> _.GetAwaiter().GetResult()
+        +agent.RunAsync("Tell me a joke about a pirate.")
         |> string
         |> printfn "%s"
 

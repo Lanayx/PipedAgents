@@ -4,6 +4,9 @@ open System
 open System.ClientModel
 open System.ClientModel.Primitives
 open System.Collections.Generic
+open System.Text.Json
+open System.Runtime.InteropServices
+open System.Threading.Tasks
 open PipedAgents.MAF
 open Microsoft.Agents.AI
 open Microsoft.Extensions.AI
@@ -11,6 +14,31 @@ open Shared
 open OpenAI.Responses
 open PipedAgents.MAF.OpenAI
 open FSharp.Control
+
+/// <summary>
+/// A sample implementation of <see cref="ChatMessageStore"/> that reduces the chat history using a <see cref="ChatReducer"/>.
+/// </summary>
+type ReducedChatMessageStore(reducer: IChatReducer, serializedState: JsonElement) =
+    inherit ChatMessageStore()
+    
+    let messages = List<ChatMessage>()
+
+    override _.InvokingAsync(context, cancellationToken) =
+        task {
+            let! reduced = reducer.ReduceAsync(messages, cancellationToken)
+            return reduced :> IEnumerable<ChatMessage>
+        } |> ValueTask<IEnumerable<ChatMessage>>
+
+    override _.InvokedAsync(context, cancellationToken) =
+        task {
+            if context.InvokeException |> isNull |> not then return ()
+            messages.AddRange(context.RequestMessages)
+            if context.ResponseMessages |> isNull |> not then
+                messages.AddRange(context.ResponseMessages)
+        } |> ValueTask
+
+    override _.Serialize([<Optional; DefaultParameterValue(null:JsonSerializerOptions)>] jsonSerializerOptions: JsonSerializerOptions) =
+        JsonSerializer.SerializeToElement("", jsonSerializerOptions)
 
 module BaseLine =
 
@@ -25,17 +53,17 @@ module BaseLine =
         )
         let client = OpenAI.OpenAIClient(key, options)
         let responseClient = client.GetResponsesClient(Environment.GetEnvironmentVariable "MODEL_ID")
-        let agent = responseClient.CreateAIAgent(ChatClientAgentOptions(
+        let agent = responseClient.AsAIAgent(ChatClientAgentOptions(
             Name = "Joker",
             ChatOptions = ChatOptions(
                 Instructions = "You are good at telling jokes.",
                 RawRepresentationFactory = fun _ -> CreateResponseOptions(StoredOutputEnabled = false)
             ),
-            ChatMessageStoreFactory = (fun ctx -> InMemoryChatMessageStore(MessageCountingChatReducer(2),
-                ctx.SerializedState, ctx.JsonSerializerOptions))
-        ))
-        let thread = agent.GetNewThread()
+            ChatMessageStoreFactory = (fun ctx ct -> ValueTask<ChatMessageStore>(ReducedChatMessageStore(MessageCountingChatReducer(2),
+                ctx.SerializedState))))
+        )
         +task {
+            let! thread = agent.GetNewThreadAsync()
             // Invoke the agent and output the text result.
             let! result1 = agent.RunAsync("Tell me a joke about a pirate.", thread)
             Console.WriteLine $"{result1}"
@@ -68,13 +96,13 @@ module Target =
             Name = "Joker",
             Instructions = "You are good at telling jokes.",
             CreateRawOptions = (fun _ -> CreateResponseOptions(StoredOutputEnabled = false)),
-            ChatMessageStoreFactory = (fun ctx -> InMemoryChatMessageStore(MessageCountingChatReducer(2),
-                ctx.SerializedState, ctx.JsonSerializerOptions))
-        ))
-        let thread = agent |> Thread.New
-        let run = thread |> agent.GetThreadRun
-        let chatHistory = thread |> Thread.GetChatHistory
+            ChatMessageStoreFactory = (fun ctx ct -> ValueTask<ChatMessageStore>(ReducedChatMessageStore(MessageCountingChatReducer(2),
+                ctx.SerializedState))))
+        )
         +task {
+            let! thread = agent |> Thread.New
+            let run = agent.GetThreadRun(thread)
+            let chatHistory = thread |> Thread.GetChatHistory
             let! result1 = run "Tell me a joke about a pirate."
             printfn $"{result1}"
             Console.WriteLine($"\nChat history has {chatHistory.Count} messages.\n")
@@ -95,13 +123,13 @@ module Target =
             Name = "Joker",
             Instructions = "You are good at telling jokes.",
             CreateRawOptions = (fun _ -> CreateResponseOptions(StoredOutputEnabled = false)),
-            ChatMessageStoreFactory = (fun ctx -> InMemoryChatMessageStore(MessageCountingChatReducer(2),
-                ctx.SerializedState, ctx.JsonSerializerOptions))
-        ))
-        let thread = agent |> Thread.New
-        let run = agent.GetStreamingThreadRun(thread)
-        let chatHistory = thread |> Thread.GetChatHistory
+            ChatMessageStoreFactory = (fun ctx ct -> ValueTask<ChatMessageStore>(ReducedChatMessageStore(MessageCountingChatReducer(2),
+                ctx.SerializedState))))
+        )
         +task {
+            let! thread = agent |> Thread.New
+            let run = agent.GetStreamingThreadRun(thread)
+            let chatHistory = thread |> Thread.GetChatHistory
             do! "Tell me a joke about a pirate." |> run |> TaskSeq.iter (printf "%O")
             Console.WriteLine($"\nChat history has {chatHistory.Count} messages.\n")
             do! "Tell me a joke about a robot." |> run |> TaskSeq.iter (printf "%O")

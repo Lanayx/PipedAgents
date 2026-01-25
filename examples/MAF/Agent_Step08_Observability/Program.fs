@@ -38,7 +38,7 @@ module Baseline =
             // Create the agent, and enable OpenTelemetry instrumentation.
             let agent =
                 responseClient
-                    .CreateAIAgent(instructions = "You are good at telling jokes.", name = "Joker")
+                    .AsAIAgent(instructions = "You are good at telling jokes.", name = "Joker")
                     .AsBuilder()
                     .UseOpenTelemetry(sourceName = sourceName).Build()
             // Invoke the agent and output the text result.

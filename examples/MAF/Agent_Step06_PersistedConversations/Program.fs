@@ -25,7 +25,7 @@ module Baseline =
         let agent =
             OpenAI.OpenAIClient(key, options)
                 .GetResponsesClient(Environment.GetEnvironmentVariable "MODEL_ID")
-                .CreateAIAgent(
+                .AsAIAgent(
                     ChatClientAgentOptions(
                         Name = "Joker",
                         ChatOptions =
@@ -38,7 +38,7 @@ module Baseline =
 
         task {
             // Start a new thread for the agent conversation.
-            let thread = agent.GetNewThread()
+            let! thread = agent.GetNewThreadAsync()
 
             // Run the agent with a new thread.
             let! response1 = agent.RunAsync("Tell me a joke about a pirate.", thread)
@@ -57,7 +57,7 @@ module Baseline =
             let reloadedSerializedThread = JsonDocument.Parse(reloadedContent).RootElement
 
             // Deserialize the thread state after loading from storage.
-            let resumedThread = agent.DeserializeThread(reloadedSerializedThread)
+            let! resumedThread = agent.DeserializeThreadAsync(reloadedSerializedThread)
 
             // Run the agent again with the resumed thread.
             let! response2 = agent.RunAsync("Now tell the same joke in the voice of a pirate, and add some emojis to the joke.", resumedThread)
@@ -82,7 +82,7 @@ module Target =
         
         +task {
             // Start a new thread for the agent conversation.
-            let thread = agent.GetNewThread()
+            let! thread = agent.GetNewThreadAsync()
             let run = agent.GetThreadRun(thread)
 
             // Run the agent with a new thread.
@@ -101,7 +101,7 @@ module Target =
             let! reloadedContent = File.ReadAllTextAsync(tempFilePath)
 
             // Deserialize the thread state after loading from storage.
-            let resumedThread = Thread.FromString(reloadedContent, agent)
+            let! resumedThread = Thread.FromString(reloadedContent, agent)
             let run = agent.GetThreadRun(resumedThread)
 
             // Run the agent again with the resumed thread.

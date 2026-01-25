@@ -117,10 +117,10 @@ module BaseLine =
         let client = OpenAI.OpenAIClient(key, options)
         let chatClient = client.GetResponsesClient(Environment.GetEnvironmentVariable "MODEL_ID")
 
-        let spamDetectionAgent = chatClient.CreateAIAgent(ChatClientAgentOptions(ChatOptions = ChatOptions(
+        let spamDetectionAgent = chatClient.AsAIAgent(ChatClientAgentOptions(ChatOptions = ChatOptions(
                                     Instructions = "You are a spam detection assistant that identifies spam emails.",
                                     ResponseFormat = ChatResponseFormat.ForJsonSchema<DetectionResult>())))
-        let emailAssistantAgent = chatClient.CreateAIAgent(ChatClientAgentOptions(ChatOptions = ChatOptions(
+        let emailAssistantAgent = chatClient.AsAIAgent(ChatClientAgentOptions(ChatOptions = ChatOptions(
                                     Instructions = "You are an email assistant that helps users draft responses to emails with professionalism.",
                                     ResponseFormat = ChatResponseFormat.ForJsonSchema<EmailResponse>())))
 

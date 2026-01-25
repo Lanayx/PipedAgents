@@ -28,10 +28,10 @@ type ChatCompletionsChatClient(chatClient: IChatClient) =
 type ChatClientExtensions =
     [<Extension>]
     static member CreateAgent(chatClient: ResponsesChatClient, chatOptions: AgentOptions<CreateResponseOptions>) =
-        chatClient.CreateAIAgent(chatOptions.ToAgentOptions())
+        chatClient.AsAIAgent(chatOptions.ToAgentOptions())
     [<Extension>]
     static member CreateAgent(chatClient: ChatCompletionsChatClient, chatOptions: AgentOptions<ChatCompletionOptions>) =
-        chatClient.CreateAIAgent(chatOptions.ToAgentOptions())
+        chatClient.AsAIAgent(chatOptions.ToAgentOptions())
     [<Extension>]
     static member AddMiddleware(chatClient: ResponsesChatClient, runMiddleware, ?streamingRunMiddleware) =
         chatClient.AsBuilder().Use(runMiddleware, (streamingRunMiddleware |> Option.toObj)).Build()

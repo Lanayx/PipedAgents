@@ -19,7 +19,7 @@ type MessagesChatClient(chatClient: IChatClient) =
 type ChatClientExtensions =
     [<Extension>]
     static member CreateAgent(chatClient: MessagesChatClient, chatOptions: AgentOptions<MessageCreateParams>) =
-        chatClient.CreateAIAgent(chatOptions.ToAgentOptions())
+        chatClient.AsAIAgent(chatOptions.ToAgentOptions())
     [<Extension>]
     static member AddMiddleware(chatClient: MessagesChatClient, runMiddleware, ?streamingRunMiddleware) =
         chatClient.AsBuilder().Use(runMiddleware, (streamingRunMiddleware |> Option.toObj)).Build()

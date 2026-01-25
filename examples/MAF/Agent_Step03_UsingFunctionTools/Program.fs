@@ -30,7 +30,7 @@ module Baseline =
         let client = OpenAI.OpenAIClient(key, options)
         let responseClient = client.GetResponsesClient(Environment.GetEnvironmentVariable "MODEL_ID")
         let agent =
-            responseClient.CreateAIAgent(
+            responseClient.AsAIAgent(
                 ChatClientAgentOptions(
                     ChatOptions =
                         ChatOptions(

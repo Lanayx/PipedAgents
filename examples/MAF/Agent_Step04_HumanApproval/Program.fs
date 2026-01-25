@@ -30,7 +30,7 @@ module Baseline =
         let client = OpenAI.OpenAIClient(key, options)
         let responseClient = client.GetResponsesClient(Environment.GetEnvironmentVariable "MODEL_ID")
         let agent =
-            responseClient.CreateAIAgent(
+            responseClient.AsAIAgent(
                 ChatClientAgentOptions(
                     ChatOptions =
                         ChatOptions(
@@ -41,29 +41,31 @@ module Baseline =
                 )
             )
 
-        // Call the agent and check if there are any user input requests to handle.
-        let thread = agent.GetNewThread()
-        let mutable response = agent.RunAsync("What is the weather like in Amsterdam?", thread).GetAwaiter().GetResult()
-        let mutable userInputRequests = response.UserInputRequests |> Seq.toList
+        task {
+            // Call the agent and check if there are any user input requests to handle.
+            let! thread = agent.GetNewThreadAsync()
+            let mutable response = +agent.RunAsync("What is the weather like in Amsterdam?", thread)
+            let mutable userInputRequests = response.UserInputRequests |> Seq.toList
 
-        while userInputRequests.Length > 0 do
-            // Ask the user to approve each function call request.
-            let userInputResponses =
-                userInputRequests
-                |> List.choose (function
-                    | :? FunctionApprovalRequestContent as functionApprovalRequest ->
-                        printfn "The agent would like to invoke the following function, please reply Y to approve: Name %s" functionApprovalRequest.FunctionCall.Name
-                        let approved = String.Equals(Console.ReadLine(), "Y", StringComparison.OrdinalIgnoreCase)
-                        let response = functionApprovalRequest.CreateResponse(approved)
-                        Some(ChatMessage(ChatRole.User, [| response :> AIContent |] :> System.Collections.Generic.IList<AIContent>))
-                    | _ -> None
-                )
+            while userInputRequests.Length > 0 do
+                // Ask the user to approve each function call request.
+                let userInputResponses =
+                    userInputRequests
+                    |> List.choose (function
+                        | :? FunctionApprovalRequestContent as functionApprovalRequest ->
+                            printfn "The agent would like to invoke the following function, please reply Y to approve: Name %s" functionApprovalRequest.FunctionCall.Name
+                            let approved = String.Equals(Console.ReadLine(), "Y", StringComparison.OrdinalIgnoreCase)
+                            let response = functionApprovalRequest.CreateResponse(approved)
+                            Some(ChatMessage(ChatRole.User, [| response :> AIContent |] :> System.Collections.Generic.IList<AIContent>))
+                        | _ -> None
+                    )
 
-            // Pass the user input responses back to the agent for further processing.
-            response <- agent.RunAsync(userInputResponses, thread).GetAwaiter().GetResult()
-            userInputRequests <- response.UserInputRequests |> Seq.toList
+                // Pass the user input responses back to the agent for further processing.
+                response <- +agent.RunAsync(userInputResponses, thread)
+                userInputRequests <- response.UserInputRequests |> Seq.toList
 
-        printfn "\nAgent: %O" response
+            printfn "\nAgent: %O" response
+        } |> _.GetAwaiter().GetResult()
 
 
 module Target =
@@ -81,31 +83,31 @@ module Target =
                 CreateRawOptions = (fun _ -> CreateResponseOptions(StoredOutputEnabled = false))
             )
         )
-        let threadId = agent.GetNewThread()
-        let run = agent.GetThreadRun(threadId)
-        let runMsg = agent.GetThreadMessageRun(threadId)
-        let rec handleResponse (response: AgentRunResponse) =
-            task {
-                let userInputRequests = response.UserInputRequests |> Seq.toArray
-                if userInputRequests.Length > 0 then
-                    let! response =
-                        userInputRequests
-                        |> Array.choose (function
-                            | :? FunctionApprovalRequestContent as functionApprovalRequest ->
-                                Console.WriteLine(
-                                    "The agent would like to invoke the following function, please reply Y to approve: Name {0}",
-                                    functionApprovalRequest.FunctionCall.Name)
-                                let approved = Console.ReadLine() = "Y"
-                                functionApprovalRequest.CreateResponse(approved) :> AIContent |> Some
-                            | _ -> None)
-                        |> Message.GetUserMessage
-                        |> runMsg
-                    return! handleResponse response
-                else
-                    printfn $"\nAgent: {response}"
-            }
         +task {
-            let! response = run "What is the weather like in Amsterdam?"
+            let! threadId = agent.GetNewThreadAsync()
+            let run = agent.GetThreadRun(threadId)
+            let runMsg = agent.GetThreadMessageRun(threadId)
+            let rec handleResponse (response: AgentResponse) =
+                task {
+                    let userInputRequests = response.UserInputRequests |> Seq.toArray
+                    if userInputRequests.Length > 0 then
+                        let! response =
+                            userInputRequests
+                            |> Array.choose (function
+                                | :? FunctionApprovalRequestContent as functionApprovalRequest ->
+                                    Console.WriteLine(
+                                        "The agent would like to invoke the following function, please reply Y to approve: Name {0}",
+                                        functionApprovalRequest.FunctionCall.Name)
+                                    let approved = Console.ReadLine() = "Y"
+                                    functionApprovalRequest.CreateResponse(approved) :> AIContent |> Some
+                                | _ -> None)
+                            |> Message.GetUserMessage
+                            |> runMsg
+                        return! handleResponse response
+                    else
+                        printfn $"\nAgent: {response}"
+                }
+            let! response = run "What is the Amsterdam weather like?"
             do! handleResponse response
         }
 

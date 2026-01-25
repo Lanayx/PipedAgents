@@ -4,6 +4,7 @@ open System
 open System.ClientModel
 open System.ClientModel.Primitives
 open System.Net.Mime
+open Microsoft.Agents.AI
 open PipedAgents.MAF
 open OpenAI.Chat
 open Microsoft.Extensions.AI
@@ -24,15 +25,14 @@ module BaseLine =
         )
         let client = OpenAI.OpenAIClient(key, options)
         let responseClient = client.GetChatClient(Environment.GetEnvironmentVariable "MODEL_ID")
-        let agent = responseClient.CreateAIAgent(name = "VisionAgent")
-        let thread = agent.GetNewThread()
+        let agent = responseClient.AsAIAgent(name = "VisionAgent")
+        let thread = +(agent.GetNewThreadAsync().AsTask())
         let message =
             ChatMessage(ChatRole.User, [|
                 TextContent("What do you see in this image?") :> AIContent
                 UriContent("https://upload.wikimedia.org/wikipedia/commons/thumb/d/dd/Gfp-wisconsin-madison-the-nature-boardwalk.jpg/2560px-Gfp-wisconsin-madison-the-nature-boardwalk.jpg", "image/jpeg")
             |])
-        agent.RunAsync(message, thread)
-        |> _.GetAwaiter().GetResult()
+        +agent.RunAsync(message, thread)
         |> string
         |> printfn "%s"
 

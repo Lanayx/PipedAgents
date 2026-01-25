@@ -6,7 +6,6 @@ open System.Threading.Tasks
 open Microsoft.Agents.AI.Workflows
 open Shared.Logging
 open PipedAgents.MAF.Workflows
-open FSharp.Control
 
 
 module BaseLine =

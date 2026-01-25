@@ -12,10 +12,11 @@
     </ItemGroup>
 
     <ItemGroup>
-      <PackageReference Include="Microsoft.Agents.AI" Version="1.0.0-preview.251219.1" />
-      <PackageReference Include="Microsoft.Agents.AI.Workflows" Version="1.0.0-preview.251219.1" />
-      <PackageReference Include="Microsoft.Agents.AI.Anthropic" Version="1.0.0-preview.251219.1" />
-      <PackageReference Include="Microsoft.Agents.AI.OpenAI" Version="1.0.0-preview.251219.1" />
+      <PackageReference Include="FSharp.Control.TaskSeq" Version="0.4.0" />
+      <PackageReference Include="Microsoft.Agents.AI" Version="1.0.0-preview.260121.1" />
+      <PackageReference Include="Microsoft.Agents.AI.Workflows" Version="1.0.0-preview.260121.1" />
+      <PackageReference Include="Microsoft.Agents.AI.Anthropic" Version="1.0.0-preview.260121.1" />
+      <PackageReference Include="Microsoft.Agents.AI.OpenAI" Version="1.0.0-preview.260121.1" />
     </ItemGroup>
 
 </Project>

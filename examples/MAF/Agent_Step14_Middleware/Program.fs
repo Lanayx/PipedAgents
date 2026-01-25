@@ -77,7 +77,7 @@ module Baseline =
 
     // PII Redaction Middleware
     let piiMiddleware =
-        Func<IEnumerable<ChatMessage>, AgentThread, AgentRunOptions, AIAgent, CancellationToken, Task<AgentRunResponse>>(fun messages thread options innerAgent cancellationToken ->
+        Func<IEnumerable<ChatMessage>, AgentThread, AgentRunOptions, AIAgent, CancellationToken, Task<AgentResponse>>(fun messages thread options innerAgent cancellationToken ->
             task {
                 let filteredMessages = filterMessages messages
                 printfn "Pii Middleware - Filtered Messages Pre-Run"
@@ -99,7 +99,7 @@ module Baseline =
 
     // Guardrail Middleware
     let guardrailMiddleware =
-        Func<IEnumerable<ChatMessage>, AgentThread, AgentRunOptions, AIAgent, CancellationToken, Task<AgentRunResponse>>(fun messages thread options innerAgent cancellationToken ->
+        Func<IEnumerable<ChatMessage>, AgentThread, AgentRunOptions, AIAgent, CancellationToken, Task<AgentResponse>>(fun messages thread options innerAgent cancellationToken ->
             task {
                 let filteredMessages = filterGuardrailMessages messages
                 printfn "Guardrail Middleware - Filtered messages Pre-Run"
@@ -111,7 +111,7 @@ module Baseline =
 
     // Console Prompting Approval Middleware
     let consolePromptingApprovalMiddleware =
-        Func<IEnumerable<ChatMessage>, AgentThread, AgentRunOptions, AIAgent, CancellationToken, Task<AgentRunResponse>>(fun messages thread options innerAgent cancellationToken ->
+        Func<IEnumerable<ChatMessage>, AgentThread, AgentRunOptions, AIAgent, CancellationToken, Task<AgentResponse>>(fun messages thread options innerAgent cancellationToken ->
             task {
                 let! response_val = innerAgent.RunAsync(messages, thread, options, cancellationToken)
                 let mutable response = response_val
@@ -170,7 +170,7 @@ module Baseline =
         // Example 1 & 2 & 3
         let originalAgent =
             let chatClient = responseClient.AsIChatClient().AsBuilder().Use(chatClientMiddleware, null).Build()
-            chatClient.CreateAIAgent(
+            chatClient.AsAIAgent(
                 ChatClientAgentOptions(
                     ChatOptions = ChatOptions(
                         Instructions = "You are an AI assistant that helps people find information.",
@@ -188,9 +188,8 @@ module Baseline =
                 .Use(guardrailMiddleware, null)
                 .Build()
 
-        let thread = middlewareEnabledAgent.GetNewThread()
-
         +task {
+            let! thread = middlewareEnabledAgent.GetNewThreadAsync()
             Console.WriteLine("\n\n=== Example 1: Wording Guardrail ===")
             let! guardRailedResponse = middlewareEnabledAgent.RunAsync("Tell me something harmful.", thread)
             Console.WriteLine($"Guard railed response: {guardRailedResponse}")
@@ -297,7 +296,7 @@ module Target =
         messages |> Seq.map (fun m -> ChatMessage(m.Role, filterContent m.Text)) |> Seq.toArray
 
     // Guardrail Middleware
-    // Func<IEnumerable<ChatMessage>, AgentThread, AgentRunOptions, AIAgent, CancellationToken, Task<AgentRunResponse>>
+    // Func<IEnumerable<ChatMessage>, AgentThread, AgentRunOptions, AIAgent, CancellationToken, Task<AgentResponse>>
     let guardrailMiddleware messages thread options (innerAgent: AIAgent) cancellationToken =
         task {
             let filteredMessages = filterGuardrailMessages messages
@@ -374,9 +373,9 @@ module Target =
                 .AddRunMiddleware(piiMiddleware)
                 .AddRunMiddleware(guardrailMiddleware)
 
-        let thread = middlewareEnabledAgent.GetNewThread()
-        let run = middlewareEnabledAgent.GetThreadRun(thread)
         +task {
+            let! thread = middlewareEnabledAgent.GetNewThreadAsync()
+            let run = middlewareEnabledAgent.GetThreadRun(thread)
             Console.WriteLine("\n\n=== Example 1: Wording Guardrail ===")
             let! guardRailedResponse = run "Tell me something harmful."
             Console.WriteLine($"Guard railed response: {guardRailedResponse}")

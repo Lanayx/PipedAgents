@@ -3,6 +3,7 @@
 open System
 open System.ClientModel
 open System.ClientModel.Primitives
+open Microsoft.Agents.AI
 open PipedAgents.MAF
 open OpenAI.Chat
 open Shared
@@ -24,11 +25,10 @@ module BaseLine =
 
         let client = OpenAI.OpenAIClient(key, options)
         let responseClient = client.GetChatClient(Environment.GetEnvironmentVariable "MODEL_ID")
-        let agent = responseClient.CreateAIAgent(
+        let agent = responseClient.AsAIAgent(
             instructions = "You are good at telling jokes. Write jokes with all uppercase letters.",
             name = "Joker")
-        agent.RunAsync("Tell me a joke about a pirate.")
-        |> _.GetAwaiter().GetResult()
+        +agent.RunAsync("Tell me a joke about a pirate.")
         |> string
         |> printfn "%s"
 

@@ -7,7 +7,7 @@
   },
   "type": "module",
   "dependencies": {
-    "@strands-agents/sdk": "^0.1.5"
+    "@strands-agents/sdk": "0.1.6"
   },
   "devDependencies": {
     "ts-node": "^10.9.2",
