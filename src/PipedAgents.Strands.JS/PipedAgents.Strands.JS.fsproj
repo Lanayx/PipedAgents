@@ -7,12 +7,12 @@
         <PackageId>PipedAgents.Strands.JS</PackageId>
         <Title>PipedAgents.Strands.JS</Title>
         <Company>F# community</Company>
-        <Description>F# wrapper of strands-agents library</Description>
+        <Description>F# wrapper of @strands-agents npm library</Description>
         <RepositoryUrl>https://github.com/Lanayx/PipedAgents</RepositoryUrl>
         <PackageLicenseExpression>MIT</PackageLicenseExpression>
         <PackageProjectUrl>https://github.com/Lanayx/PipedAgents/tree/main/src/PipedAgents.Strands.JS</PackageProjectUrl>
         <RepositoryType>git</RepositoryType>
-        <PackageTags>F#;FSharp;Fable;fable-javascript;Agents;Agentic;Framework;Strands</PackageTags>
+        <PackageTags>F#;FSharp;Fable;fable-javascript;Agents;Agentic;Framework;Strands;PipedAgents</PackageTags>
         <Authors>Vladimir Shchur and contributors</Authors>
         <Copyright>Copyright (c) Vladimir Shchur 2026</Copyright>
         <PackageReadmeFile>README.md</PackageReadmeFile>
@@ -33,6 +33,7 @@
         <Compile Include="ZodBindings.fs" />
         <Compile Include="AgentBindings.fs" />
         <Compile Include="StrandsAPI.fs" />
+        <Content Include="README.md" />
     </ItemGroup>
 
 </Project>

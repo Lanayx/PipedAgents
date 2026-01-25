@@ -2,6 +2,23 @@
 
     <PropertyGroup>
         <TargetFramework>net10.0</TargetFramework>
+        <FablePackageType>library</FablePackageType>
+        <WarningsAsErrors>3239;0025</WarningsAsErrors>
+        <PackageId>PipedAgents.MAF</PackageId>
+        <Title>PipedAgents.MAF</Title>
+        <Company>F# community</Company>
+        <Description>F# wrapper of Microsoft Agentic Framework</Description>
+        <RepositoryUrl>https://github.com/Lanayx/PipedAgents</RepositoryUrl>
+        <PackageLicenseExpression>MIT</PackageLicenseExpression>
+        <PackageProjectUrl>https://github.com/Lanayx/PipedAgents/tree/main/src/PipedAgents.MAF</PackageProjectUrl>
+        <RepositoryType>git</RepositoryType>
+        <PackageTags>F#;FSharp;Agents;Agentic;Framework;MAF;PipedAgents</PackageTags>
+        <Authors>Vladimir Shchur and contributors</Authors>
+        <Copyright>Copyright (c) Vladimir Shchur 2026</Copyright>
+        <PackageReadmeFile>README.md</PackageReadmeFile>
+        <Version>0.0.1</Version>
+        <PackageVersion>0.0.1</PackageVersion>
+        <PackageReleaseNotes>Initial release.</PackageReleaseNotes>
     </PropertyGroup>
 
     <ItemGroup>
@@ -9,6 +26,7 @@
         <Compile Include="Agents.OpenAI.fs" />
         <Compile Include="Agents.Anthropic.fs" />
         <Compile Include="Workflows.fs" />
+        <Content Include="README.md" />
     </ItemGroup>
 
     <ItemGroup>

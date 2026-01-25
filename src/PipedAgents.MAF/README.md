@@ -1,0 +1,1 @@
+Wrapper around `Microsoft.Agents.AI` .NET library

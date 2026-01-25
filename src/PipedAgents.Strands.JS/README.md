@@ -1,0 +1,1 @@
+Wrapper around `@strands-agents` JavaScript library
