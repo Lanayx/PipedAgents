@@ -83,32 +83,32 @@ module Target =
                 CreateRawOptions = (fun _ -> CreateResponseOptions(StoredOutputEnabled = false))
             )
         )
+        let rec handleResponse (response: AgentResponse) runMsg =
+            task {
+                let userInputRequests = response.UserInputRequests |> Seq.toArray
+                if userInputRequests.Length > 0 then
+                    let! response =
+                        userInputRequests
+                        |> Array.choose (function
+                            | :? FunctionApprovalRequestContent as functionApprovalRequest ->
+                                Console.WriteLine(
+                                    "The agent would like to invoke the following function, please reply Y to approve: Name {0}",
+                                    functionApprovalRequest.FunctionCall.Name)
+                                let approved = Console.ReadLine() = "Y"
+                                functionApprovalRequest.CreateResponse(approved) :> AIContent |> Some
+                            | _ -> None)
+                        |> Message.GetUserMessage
+                        |> runMsg
+                    return! handleResponse response runMsg
+                else
+                    printfn $"\nAgent: {response}"
+            }
         +task {
             let! threadId = agent.GetNewThreadAsync()
             let run = agent.GetThreadRun(threadId)
             let runMsg = agent.GetThreadMessageRun(threadId)
-            let rec handleResponse (response: AgentResponse) =
-                task {
-                    let userInputRequests = response.UserInputRequests |> Seq.toArray
-                    if userInputRequests.Length > 0 then
-                        let! response =
-                            userInputRequests
-                            |> Array.choose (function
-                                | :? FunctionApprovalRequestContent as functionApprovalRequest ->
-                                    Console.WriteLine(
-                                        "The agent would like to invoke the following function, please reply Y to approve: Name {0}",
-                                        functionApprovalRequest.FunctionCall.Name)
-                                    let approved = Console.ReadLine() = "Y"
-                                    functionApprovalRequest.CreateResponse(approved) :> AIContent |> Some
-                                | _ -> None)
-                            |> Message.GetUserMessage
-                            |> runMsg
-                        return! handleResponse response
-                    else
-                        printfn $"\nAgent: {response}"
-                }
             let! response = run "What is the Amsterdam weather like?"
-            do! handleResponse response
+            return! handleResponse response runMsg
         }
 
 

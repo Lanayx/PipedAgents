@@ -17,8 +17,8 @@
         <PackageReadmeFile>README.md</PackageReadmeFile>
         <IncludeSymbols>true</IncludeSymbols>
         <SymbolPackageFormat>snupkg</SymbolPackageFormat>
-        <Version>0.0.1</Version>
-        <PackageVersion>0.0.1</PackageVersion>
+        <Version>0.1.0-alpha</Version>
+        <PackageVersion>0.1.0-alpha</PackageVersion>
         <PackageReleaseNotes>Initial release.</PackageReleaseNotes>
     </PropertyGroup>
 

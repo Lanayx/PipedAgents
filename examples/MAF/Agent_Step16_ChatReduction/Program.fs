@@ -24,10 +24,8 @@ type ReducedChatMessageStore(reducer: IChatReducer, serializedState: JsonElement
     let messages = List<ChatMessage>()
 
     override _.InvokingAsync(context, cancellationToken) =
-        task {
-            let! reduced = reducer.ReduceAsync(messages, cancellationToken)
-            return reduced :> IEnumerable<ChatMessage>
-        } |> ValueTask<IEnumerable<ChatMessage>>
+        reducer.ReduceAsync(messages, cancellationToken)
+        |> ValueTask<IEnumerable<ChatMessage>>
 
     override _.InvokedAsync(context, cancellationToken) =
         task {

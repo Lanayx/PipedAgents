@@ -16,8 +16,8 @@
         <Authors>Vladimir Shchur and contributors</Authors>
         <Copyright>Copyright (c) Vladimir Shchur 2026</Copyright>
         <PackageReadmeFile>README.md</PackageReadmeFile>
-        <Version>0.0.1</Version>
-        <PackageVersion>0.0.1</PackageVersion>
+        <Version>0.1.0-alpha</Version>
+        <PackageVersion>0.1.0-alpha</PackageVersion>
         <PackageReleaseNotes>Initial release.</PackageReleaseNotes>
     </PropertyGroup>
 
