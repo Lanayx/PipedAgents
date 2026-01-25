@@ -2,7 +2,6 @@
 
     <PropertyGroup>
         <TargetFramework>net10.0</TargetFramework>
-        <FablePackageType>library</FablePackageType>
         <WarningsAsErrors>3239;0025</WarningsAsErrors>
         <PackageId>PipedAgents.MAF</PackageId>
         <Title>PipedAgents.MAF</Title>
@@ -16,12 +15,15 @@
         <Authors>Vladimir Shchur and contributors</Authors>
         <Copyright>Copyright (c) Vladimir Shchur 2026</Copyright>
         <PackageReadmeFile>README.md</PackageReadmeFile>
+        <IncludeSymbols>true</IncludeSymbols>
+        <SymbolPackageFormat>snupkg</SymbolPackageFormat>
         <Version>0.0.1</Version>
         <PackageVersion>0.0.1</PackageVersion>
         <PackageReleaseNotes>Initial release.</PackageReleaseNotes>
     </PropertyGroup>
 
     <ItemGroup>
+        <None Include="README.md" Pack="true" PackagePath="\" />
         <Compile Include="Agents.fs" />
         <Compile Include="Agents.OpenAI.fs" />
         <Compile Include="Agents.Anthropic.fs" />
