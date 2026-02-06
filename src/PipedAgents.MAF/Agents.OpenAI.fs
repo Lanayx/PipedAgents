@@ -44,24 +44,36 @@ type ChatClientExtensions =
 type Client =
     static member ForResponsesAPI(model, ?key, ?options) =
         let key =
-            key |> Option.defaultValue (
-                ApiKeyCredential(Environment.GetEnvironmentVariable("OPENAI_API_KEY"))
+            key |> Option.defaultWith (fun () ->
+                Environment.GetEnvironmentVariable("OPENAI_API_KEY")
+                |> nullArgCheck "OPENAI_API_KEY"
+                |> ApiKeyCredential
             )
         let options =
-            options |> Option.defaultValue (
-                OpenAI.OpenAIClientOptions(Endpoint = Uri(Environment.GetEnvironmentVariable "OPENAI_BASE_URL"))
+            options |> Option.defaultWith (fun () ->
+                match Environment.GetEnvironmentVariable("OPENAI_BASE_URL") with
+                | null ->
+                    OpenAI.OpenAIClientOptions()
+                | baseUrl ->
+                    OpenAI.OpenAIClientOptions(Endpoint = Uri(baseUrl))
             )
         OpenAI.OpenAIClient(key, options).GetResponsesClient(model).AsIChatClient()
             |> fun chatClient -> new ResponsesChatClient(chatClient)
 
     static member ForChatCompletionsAPI(model, ?key, ?options) =
         let key =
-            key |> Option.defaultValue (
-                ApiKeyCredential(Environment.GetEnvironmentVariable("OPENAI_API_KEY"))
+            key |> Option.defaultWith (fun () ->
+                Environment.GetEnvironmentVariable("OPENAI_API_KEY")
+                |> nullArgCheck "OPENAI_API_KEY"
+                |> ApiKeyCredential
             )
         let options =
-            options |> Option.defaultValue (
-                OpenAI.OpenAIClientOptions(Endpoint = Uri(Environment.GetEnvironmentVariable "OPENAI_BASE_URL"))
+            options |> Option.defaultWith (fun () ->
+                match Environment.GetEnvironmentVariable("OPENAI_BASE_URL") with
+                | null ->
+                    OpenAI.OpenAIClientOptions()
+                | baseUrl ->
+                    OpenAI.OpenAIClientOptions(Endpoint = Uri(baseUrl))
             )
         OpenAI.OpenAIClient(key, options).GetChatClient(model).AsIChatClient()
             |> fun chatClient -> new ChatCompletionsChatClient(chatClient)
