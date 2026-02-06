@@ -28,10 +28,13 @@ type ChatClientExtensions =
 type Client =
     static member ForMessagesAPI(model, ?options) =
         let options =
-            options |> Option.defaultValue (
+            options |> Option.defaultWith (fun () ->
+                let apiKey =
+                    Environment.GetEnvironmentVariable "ANTHROPIC_API_KEY"
+                    |> nullArgCheck "ANTHROPIC_API_KEY"
                 let mutable options =
                     ClientOptions(
-                        APIKey = Environment.GetEnvironmentVariable "ANTHROPIC_API_KEY"
+                        APIKey = apiKey
                     )
                 let baseUrl = Environment.GetEnvironmentVariable "ANTHROPIC_BASE_URL"
                 let authToken = Environment.GetEnvironmentVariable "ANTHROPIC_AUTH_TOKEN"
