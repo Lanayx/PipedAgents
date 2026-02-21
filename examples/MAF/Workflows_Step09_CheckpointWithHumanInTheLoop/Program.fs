@@ -84,7 +84,7 @@ module BaseLine =
                 .Build()
 
     let handleExternalRequest (request: ExternalRequest) =
-        let signal = request.DataAs<SignalWithNumber>()
+        let signal = request.Data.As<SignalWithNumber>()
         if box signal <> null then
             match signal.Signal with
             | NumberSignal.Init ->
@@ -112,13 +112,13 @@ module BaseLine =
             let checkpoints = System.Collections.Generic.List<CheckpointInfo>()
 
             // Execute the workflow and save checkpoints
-            use! checkpointedRun = InProcessExecution.StreamAsync(workflow, SignalWithNumber(NumberSignal.Init), checkpointManager)
+            use! checkpointedRun = InProcessExecution.RunStreamingAsync(workflow, SignalWithNumber(NumberSignal.Init), checkpointManager)
 
-            for evt in checkpointedRun.Run.WatchStreamAsync() do
+            for evt in checkpointedRun.WatchStreamAsync() do
                 match evt with
                 | :? RequestInfoEvent as requestInputEvt ->
                     let response = handleExternalRequest requestInputEvt.Request
-                    do! checkpointedRun.Run.SendResponseAsync(response)
+                    do! checkpointedRun.SendResponseAsync(response)
                 | :? ExecutorCompletedEvent as executorCompletedEvt ->
                     Console.WriteLine($"* Executor {executorCompletedEvt.ExecutorId} completed.")
                 | :? SuperStepCompletedEvent as superStepCompletedEvt ->
@@ -142,12 +142,12 @@ module BaseLine =
             // Note that we are restoring the state directly to the same run instance.
             do! checkpointedRun.RestoreCheckpointAsync(savedCheckpoint, CancellationToken.None)
 
-            for evt in checkpointedRun.Run.WatchStreamAsync() do
+            for evt in checkpointedRun.WatchStreamAsync() do
                 match evt with
                 | :? RequestInfoEvent as requestInputEvt ->
                     // Handle `RequestInfoEvent` from the workflow
                     let response = handleExternalRequest requestInputEvt.Request
-                    do! checkpointedRun.Run.SendResponseAsync(response)
+                    do! checkpointedRun.SendResponseAsync(response)
                 | :? ExecutorCompletedEvent as executorCompletedEvt ->
                     Console.WriteLine($"* Executor {executorCompletedEvt.ExecutorId} completed.")
                 | :? WorkflowOutputEvent as workflowOutputEvt ->
@@ -199,8 +199,8 @@ module Target =
             } |> ValueTask
 
     let private handleExternalRequest (request: ExternalRequest) =
-        if request.DataIs<ExecutorResponseWrap>() then
-            match request.DataAs<ExecutorResponseWrap>().Response with
+        if request.Data.Is<ExecutorResponseWrap>() then
+            match request.Data.As<ExecutorResponseWrap>().Response with
             | ExecutorResponse.Init ->
                 "Please provide your initial guess: "
             | ExecutorResponse.Hint (NumberSignal.Above number) ->
@@ -235,11 +235,11 @@ module Target =
             use! checkpointedRun = Workflow.CheckpointStream(mainWorkflow, Init.Wrap(), CheckpointManager.Default)
             let checkpoints = ResizeArray<CheckpointInfo>()
 
-            for evt in checkpointedRun.Run.WatchStreamAsync() do
+            for evt in checkpointedRun.WatchStreamAsync() do
                 match evt with
                 | :? RequestInfoEvent as requestInputEvt ->
                     let response = handleExternalRequest requestInputEvt.Request
-                    do! checkpointedRun.Run.SendResponseAsync(response)
+                    do! checkpointedRun.SendResponseAsync(response)
                 | :? ExecutorCompletedEvent as executorCompletedEvt ->
                     Console.WriteLine($"* Executor {executorCompletedEvt.ExecutorId} completed.")
                 | :? SuperStepCompletedEvent as superStepCompletedEvt ->
@@ -262,12 +262,12 @@ module Target =
             // Note that we are restoring the state directly to the same run instance.
             do! checkpointedRun.RestoreCheckpointAsync(savedCheckpoint, CancellationToken.None)
 
-            for evt in checkpointedRun.Run.WatchStreamAsync() do
+            for evt in checkpointedRun.WatchStreamAsync() do
                 match evt with
                 | :? RequestInfoEvent as requestInputEvt ->
                     // Handle `RequestInfoEvent` from the workflow
                     let response = handleExternalRequest requestInputEvt.Request
-                    do! checkpointedRun.Run.SendResponseAsync(response)
+                    do! checkpointedRun.SendResponseAsync(response)
                 | :? ExecutorCompletedEvent as executorCompletedEvt ->
                     Console.WriteLine($"* Executor {executorCompletedEvt.ExecutorId} completed.")
                 | :? WorkflowOutputEvent as workflowOutputEvt ->

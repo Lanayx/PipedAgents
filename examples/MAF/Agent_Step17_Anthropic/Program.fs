@@ -13,12 +13,12 @@ module BaseLine =
     let run() =
         let httpClient = getLoggingHttpClient()
         let options = ClientOptions(
-            APIKey = Environment.GetEnvironmentVariable "ANTHROPIC_API_KEY",
+            ApiKey = Environment.GetEnvironmentVariable "ANTHROPIC_API_KEY",
             HttpClient = httpClient,
-            BaseUrl = Uri(Environment.GetEnvironmentVariable "ANTHROPIC_BASE_URL"),
+            BaseUrl = Environment.GetEnvironmentVariable "ANTHROPIC_BASE_URL",
             AuthToken = Environment.GetEnvironmentVariable "ANTHROPIC_AUTH_TOKEN"
         )
-        let client = AnthropicClient(options)
+        use client = new AnthropicClient(options)
         let agent = client.AsAIAgent(
             model = Environment.GetEnvironmentVariable "MODEL_ID",
             instructions = "You are good at telling jokes. Write jokes with all uppercase letters.",
@@ -31,7 +31,7 @@ module BaseLine =
 module Target =
 
     let run() =
-        let client = Client.ForMessagesAPI(Environment.GetEnvironmentVariable "MODEL_ID")
+        use client = Client.ForMessagesAPI(Environment.GetEnvironmentVariable "MODEL_ID")
         let agent = client.CreateAgent(AgentOptions(
             Instructions = "You are good at telling jokes. Write jokes with all uppercase letters.",
             Name = "Joker"))
@@ -41,7 +41,7 @@ module Target =
         }
 
     let runSteaming() =
-        let client = Client.ForMessagesAPI(Environment.GetEnvironmentVariable "MODEL_ID")
+        use client = Client.ForMessagesAPI(Environment.GetEnvironmentVariable "MODEL_ID")
         let agent = client.CreateAgent(AgentOptions(
             Instructions = "You are good at telling jokes. Write jokes with all uppercase letters.",
             Name = "Joker"))

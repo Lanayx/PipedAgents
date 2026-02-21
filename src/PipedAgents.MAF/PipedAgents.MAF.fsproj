@@ -17,9 +17,9 @@
         <PackageReadmeFile>README.md</PackageReadmeFile>
         <IncludeSymbols>true</IncludeSymbols>
         <SymbolPackageFormat>snupkg</SymbolPackageFormat>
-        <Version>0.1.1-alpha</Version>
-        <PackageVersion>0.1.1-alpha</PackageVersion>
-        <PackageReleaseNotes>Fix for manual client initialization.</PackageReleaseNotes>
+        <Version>0.2.0-alpha</Version>
+        <PackageVersion>0.2.0-alpha</PackageVersion>
+        <PackageReleaseNotes>Updated MAF dependencies to RC versions.</PackageReleaseNotes>
     </PropertyGroup>
 
     <ItemGroup>
@@ -33,10 +33,10 @@
 
     <ItemGroup>
       <PackageReference Include="FSharp.Control.TaskSeq" Version="0.4.0" />
-      <PackageReference Include="Microsoft.Agents.AI" Version="1.0.0-preview.260121.1" />
-      <PackageReference Include="Microsoft.Agents.AI.Workflows" Version="1.0.0-preview.260121.1" />
-      <PackageReference Include="Microsoft.Agents.AI.Anthropic" Version="1.0.0-preview.260121.1" />
-      <PackageReference Include="Microsoft.Agents.AI.OpenAI" Version="1.0.0-preview.260121.1" />
+      <PackageReference Include="Microsoft.Agents.AI" Version="1.0.0-rc1" />
+      <PackageReference Include="Microsoft.Agents.AI.Workflows" Version="1.0.0-rc1" />
+      <PackageReference Include="Microsoft.Agents.AI.Anthropic" Version="1.0.0-rc1" />
+      <PackageReference Include="Microsoft.Agents.AI.OpenAI" Version="1.0.0-rc1" />
     </ItemGroup>
 
 </Project>

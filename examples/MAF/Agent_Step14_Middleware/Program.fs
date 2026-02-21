@@ -25,6 +25,14 @@ module Common =
     let getDateTime () : string =
         DateTimeOffset.Now.ToString()
 
+    let getUserRequests (response: AgentResponse) =
+        response.Messages
+            |> Seq.collect _.Contents
+            |> Seq.choose (function
+                | :? FunctionApprovalRequestContent as c -> Some c
+                | _ -> None)
+            |> Seq.toArray
+
 
 module Baseline =
 
@@ -77,11 +85,11 @@ module Baseline =
 
     // PII Redaction Middleware
     let piiMiddleware =
-        Func<IEnumerable<ChatMessage>, AgentThread, AgentRunOptions, AIAgent, CancellationToken, Task<AgentResponse>>(fun messages thread options innerAgent cancellationToken ->
+        Func<IEnumerable<ChatMessage>, AgentSession, AgentRunOptions, AIAgent, CancellationToken, Task<AgentResponse>>(fun messages session options innerAgent cancellationToken ->
             task {
                 let filteredMessages = filterMessages messages
                 printfn "Pii Middleware - Filtered Messages Pre-Run"
-                let! response = innerAgent.RunAsync(filteredMessages, thread, options, cancellationToken)
+                let! response = innerAgent.RunAsync(filteredMessages, session, options, cancellationToken)
                 response.Messages <- filterMessages response.Messages
                 printfn "Pii Middleware - Filtered Messages Post-Run"
                 return response
@@ -99,11 +107,11 @@ module Baseline =
 
     // Guardrail Middleware
     let guardrailMiddleware =
-        Func<IEnumerable<ChatMessage>, AgentThread, AgentRunOptions, AIAgent, CancellationToken, Task<AgentResponse>>(fun messages thread options innerAgent cancellationToken ->
+        Func<IEnumerable<ChatMessage>, AgentSession, AgentRunOptions, AIAgent, CancellationToken, Task<AgentResponse>>(fun messages session options innerAgent cancellationToken ->
             task {
                 let filteredMessages = filterGuardrailMessages messages
                 printfn "Guardrail Middleware - Filtered messages Pre-Run"
-                let! response = innerAgent.RunAsync(filteredMessages, thread, options, cancellationToken)
+                let! response = innerAgent.RunAsync(filteredMessages, session, options, cancellationToken)
                 response.Messages <- filterGuardrailMessages response.Messages
                 printfn "Guardrail Middleware - Filtered messages Post-Run"
                 return response
@@ -111,29 +119,28 @@ module Baseline =
 
     // Console Prompting Approval Middleware
     let consolePromptingApprovalMiddleware =
-        Func<IEnumerable<ChatMessage>, AgentThread, AgentRunOptions, AIAgent, CancellationToken, Task<AgentResponse>>(fun messages thread options innerAgent cancellationToken ->
+        Func<IEnumerable<ChatMessage>, AgentSession, AgentRunOptions, AIAgent, CancellationToken, Task<AgentResponse>>(fun messages session options innerAgent cancellationToken ->
             task {
-                let! response_val = innerAgent.RunAsync(messages, thread, options, cancellationToken)
+                let! response_val = innerAgent.RunAsync(messages, session, options, cancellationToken)
                 let mutable response = response_val
-                let mutable userInputRequests = response.UserInputRequests |> Seq.toList
+                let mutable userInputRequests = getUserRequests response
 
                 while userInputRequests.Length > 0 do
                     let responses =
                         userInputRequests
-                        |> List.choose (function
-                            | :? FunctionApprovalRequestContent as functionApprovalRequest ->
-                                printfn $"The agent would like to invoke the following function, please reply Y to approve: Name {functionApprovalRequest.FunctionCall.Name}"
-                                let approved = Console.ReadLine().Equals("Y", StringComparison.OrdinalIgnoreCase)
-                                Some (functionApprovalRequest.CreateResponse(approved) :> AIContent)
-                            | _ -> None)
+                        |> Array.map (fun functionApprovalRequest ->
+                            printfn $"The agent would like to invoke the following function, please reply Y to approve: Name {functionApprovalRequest.FunctionCall.Name}"
+                            let approved = Console.ReadLine().Equals("Y", StringComparison.OrdinalIgnoreCase)
+                            functionApprovalRequest.CreateResponse(approved) :> AIContent
+                        )
                     
                     if responses.Length > 0 then
-                        let nextMessages = [| ChatMessage(ChatRole.User, responses |> List.toArray :> IList<AIContent>) |] :> IEnumerable<ChatMessage>
-                        let! nextResponse = innerAgent.RunAsync(nextMessages, thread, options, cancellationToken)
+                        let nextMessages = [| ChatMessage(ChatRole.User, responses :> IList<AIContent>) |] :> IEnumerable<ChatMessage>
+                        let! nextResponse = innerAgent.RunAsync(nextMessages, session, options, cancellationToken)
                         response <- nextResponse
-                        userInputRequests <- response.UserInputRequests |> Seq.toList
+                        userInputRequests <- getUserRequests response
                     else
-                        userInputRequests <- []
+                        userInputRequests <- [||]
                 return response
             })
 
@@ -189,20 +196,20 @@ module Baseline =
                 .Build()
 
         +task {
-            let! thread = middlewareEnabledAgent.GetNewThreadAsync()
+            let! session = middlewareEnabledAgent.CreateSessionAsync()
             Console.WriteLine("\n\n=== Example 1: Wording Guardrail ===")
-            let! guardRailedResponse = middlewareEnabledAgent.RunAsync("Tell me something harmful.", thread)
+            let! guardRailedResponse = middlewareEnabledAgent.RunAsync("Tell me something harmful.", session)
             Console.WriteLine($"Guard railed response: {guardRailedResponse}")
 
             Console.WriteLine("\n\n=== Example 2: PII detection ===")
-            let! piiResponse = middlewareEnabledAgent.RunAsync("My name is John Doe, call me at 123-456-7890 or email me at john@something.com", thread)
+            let! piiResponse = middlewareEnabledAgent.RunAsync("My name is John Doe, call me at 123-456-7890 or email me at john@something.com", session)
             Console.WriteLine($"Pii filtered response: {piiResponse}")
 
             Console.WriteLine("\n\n=== Example 3: Agent function middleware ===")
             let options = ChatClientAgentRunOptions(ChatOptions(Tools = [|
                 AIFunctionFactory.Create(Func<string, string>(getWeather), name = nameof(getWeather))
             |]))
-            let! functionCallResponse = middlewareEnabledAgent.RunAsync("What's the current time and the weather in Seattle?", thread, options)
+            let! functionCallResponse = middlewareEnabledAgent.RunAsync("What's the current time and the weather in Seattle?", session, options)
             Console.WriteLine($"Function calling response: {functionCallResponse}")
 
             Console.WriteLine("\n\n=== Example 4: Per-request middleware with human in the loop function approval ===")
@@ -275,11 +282,11 @@ module Target =
         messages |> Seq.map (fun m -> ChatMessage(m.Role, filterPii m.Text)) |> Seq.toArray :> IList<ChatMessage>
 
     // PII Redaction Middleware
-    let piiMiddleware messages thread options (innerAgent: AIAgent) cancellationToken =
+    let piiMiddleware messages session options (innerAgent: AIAgent) cancellationToken =
         task {
             let filteredMessages = filterMessages messages
             printfn "Pii Middleware - Filtered Messages Pre-Run"
-            let! response = innerAgent.RunAsync(filteredMessages, thread, options, cancellationToken)
+            let! response = innerAgent.RunAsync(filteredMessages, session, options, cancellationToken)
             response.Messages <- filterMessages response.Messages
             printfn "Pii Middleware - Filtered Messages Post-Run"
             return response
@@ -296,39 +303,38 @@ module Target =
         messages |> Seq.map (fun m -> ChatMessage(m.Role, filterContent m.Text)) |> Seq.toArray
 
     // Guardrail Middleware
-    // Func<IEnumerable<ChatMessage>, AgentThread, AgentRunOptions, AIAgent, CancellationToken, Task<AgentResponse>>
-    let guardrailMiddleware messages thread options (innerAgent: AIAgent) cancellationToken =
+    // Func<IEnumerable<ChatMessage>, AgentSession, AgentRunOptions, AIAgent, CancellationToken, Task<AgentResponse>>
+    let guardrailMiddleware messages session options (innerAgent: AIAgent) cancellationToken =
         task {
             let filteredMessages = filterGuardrailMessages messages
             printfn "Guardrail Middleware - Filtered messages Pre-Run"
-            let! response = innerAgent.RunAsync(filteredMessages, thread, options, cancellationToken)
+            let! response = innerAgent.RunAsync(filteredMessages, session, options, cancellationToken)
             response.Messages <- filterGuardrailMessages response.Messages
             printfn "Guardrail Middleware - Filtered messages Post-Run"
             return response
         }
 
     // Console Prompting Approval Middleware
-    let consolePromptingApprovalMiddleware (messages: ChatMessage seq) thread options (innerAgent: AIAgent) cancellationToken =
+    let consolePromptingApprovalMiddleware (messages: ChatMessage seq) session options (innerAgent: AIAgent) cancellationToken =
         task {
-            let! response_val = innerAgent.RunAsync(messages, thread, options, cancellationToken)
+            let! response_val = innerAgent.RunAsync(messages, session, options, cancellationToken)
             let mutable response = response_val
-            let mutable userInputRequests = response.UserInputRequests |> Seq.toArray
+            let mutable userInputRequests = getUserRequests response
 
             while userInputRequests.Length > 0 do
                 let responses =
                     userInputRequests
-                    |> Array.choose (function
-                        | :? FunctionApprovalRequestContent as functionApprovalRequest ->
-                            printfn $"The agent would like to invoke the following function, please reply Y to approve: Name {functionApprovalRequest.FunctionCall.Name}"
-                            let approved = Console.ReadLine() = "Y"
-                            Some (functionApprovalRequest.CreateResponse(approved) :> AIContent)
-                        | _ -> None)
+                    |> Array.map (fun functionApprovalRequest ->
+                        printfn $"The agent would like to invoke the following function, please reply Y to approve: Name {functionApprovalRequest.FunctionCall.Name}"
+                        let approved = Console.ReadLine() = "Y"
+                        functionApprovalRequest.CreateResponse(approved) :> AIContent
+                    )
 
                 if responses.Length > 0 then
                     let nextMessages = [| ChatMessage(ChatRole.User, responses) |]
-                    let! nextResponse = innerAgent.RunAsync(nextMessages, thread, options, cancellationToken)
+                    let! nextResponse = innerAgent.RunAsync(nextMessages, session, options, cancellationToken)
                     response <- nextResponse
-                    userInputRequests <- response.UserInputRequests |> Seq.toArray
+                    userInputRequests <- getUserRequests response
                 else
                     userInputRequests <- [||]
             return response
@@ -374,8 +380,8 @@ module Target =
                 .AddRunMiddleware(guardrailMiddleware)
 
         +task {
-            let! thread = middlewareEnabledAgent.GetNewThreadAsync()
-            let run = middlewareEnabledAgent.GetThreadRun(thread)
+            let! session = middlewareEnabledAgent.CreateSessionAsync()
+            let run = middlewareEnabledAgent.GetSessionRun(session)
             Console.WriteLine("\n\n=== Example 1: Wording Guardrail ===")
             let! guardRailedResponse = run "Tell me something harmful."
             Console.WriteLine($"Guard railed response: {guardRailedResponse}")
@@ -388,7 +394,7 @@ module Target =
             let options = ChatClientAgentRunOptions(ChatOptions(Tools = [|
                 Tool.Get(<@ getWeather @>, AIFunctionFactoryOptions(Name = nameof getWeather))
             |]))
-            let! functionCallResponse = middlewareEnabledAgent.RunAsync("What's the current time and the weather in Seattle?", thread, options)
+            let! functionCallResponse = middlewareEnabledAgent.RunAsync("What's the current time and the weather in Seattle?", session, options)
             Console.WriteLine($"Function calling response: {functionCallResponse}")
 
             Console.WriteLine("\n\n=== Example 4: Per-request middleware with human in the loop function approval ===")

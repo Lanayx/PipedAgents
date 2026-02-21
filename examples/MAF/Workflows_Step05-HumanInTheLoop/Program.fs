@@ -43,8 +43,8 @@ module BaseLine =
             } |> ValueTask
 
     let private handleExternalRequest (request: ExternalRequest) =
-        if request.DataIs<NumberSignal>() then
-            match request.DataAs<NumberSignal>() with
+        if request.Data.Is<NumberSignal>() then
+            match request.Data.As<NumberSignal>() with
             | NumberSignal.Init ->
                 let initialGuess = readIntegerFromConsole "Please provide your initial guess: "
                 request.CreateResponse(initialGuess)
@@ -69,7 +69,7 @@ module BaseLine =
                 .Build()
 
         +task {
-            use! handle = InProcessExecution.StreamAsync(workflow, NumberSignal.Init)
+            use! handle = InProcessExecution.RunStreamingAsync(workflow, NumberSignal.Init)
             use enumerator = handle.WatchStreamAsync().GetAsyncEnumerator()
             while! enumerator.MoveNextAsync() do
                 match enumerator.Current with
@@ -110,8 +110,8 @@ module Target =
                 Hint(NumberSignal.Above).Wrap()
 
     let private handleExternalRequest (request: ExternalRequest) =
-        if request.DataIs<ExecutorResponseWrap>() then
-            match request.DataAs<ExecutorResponseWrap>().Response with
+        if request.Data.Is<ExecutorResponseWrap>() then
+            match request.Data.As<ExecutorResponseWrap>().Response with
             | ExecutorResponse.Init -> "Please provide your initial guess: "
             | ExecutorResponse.Hint NumberSignal.Above -> "You previously guessed too large. Please provide a new guess: "
             | ExecutorResponse.Hint NumberSignal.Below -> "You previously guessed too small. Please provide a new guess: "

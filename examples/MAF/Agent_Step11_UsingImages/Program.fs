@@ -26,20 +26,20 @@ module BaseLine =
         let client = OpenAI.OpenAIClient(key, options)
         let responseClient = client.GetChatClient(Environment.GetEnvironmentVariable "MODEL_ID")
         let agent = responseClient.AsAIAgent(name = "VisionAgent")
-        let thread = +(agent.GetNewThreadAsync().AsTask())
+        let session = +(agent.CreateSessionAsync().AsTask())
         let message =
             ChatMessage(ChatRole.User, [|
                 TextContent("What do you see in this image?") :> AIContent
                 UriContent("https://upload.wikimedia.org/wikipedia/commons/thumb/d/dd/Gfp-wisconsin-madison-the-nature-boardwalk.jpg/2560px-Gfp-wisconsin-madison-the-nature-boardwalk.jpg", "image/jpeg")
             |])
-        +agent.RunAsync(message, thread)
+        +agent.RunAsync(message, session)
         |> string
         |> printfn "%s"
 
 module Target =
 
     let runStreaming() =
-        let client = Client.ForChatCompletionsAPI(Environment.GetEnvironmentVariable "MODEL_ID")
+        use client = Client.ForChatCompletionsAPI(Environment.GetEnvironmentVariable "MODEL_ID")
         let agent = client.CreateAgent(AgentOptions(Name = "VisionAgent"))
         let message =
             [|

@@ -21,7 +21,7 @@ type EdgeType<'T> =
     | Switch of fromNode:Node<obj, 'T> * cases:CaseType<'T> seq
     | FanOut of fromNode:Node<obj, 'T> * toNode:Node<'T, obj> seq
     | FanOutCond of fromNode:Node<obj, 'T> * toNode:Node<'T, obj> seq * condition:Func<'T,int,int seq>
-    | FanIn of fromNode:Node<obj, 'T> seq * toNode:Node<'T, obj>
+    | FanInBarrier of fromNode:Node<obj, 'T> seq * toNode:Node<'T, obj>
 
 [<AutoOpen>]
 module NodeOperators =
@@ -48,7 +48,7 @@ module NodeOperators =
         EdgeType.FanOutCond(boxIn fromNode, toNodes |> Seq.map boxOut, assigner)
     /// Creates a fan-in edge from multiple nodes to one node.
     let inline (>>=) (fromNodes : Node<'a, 'b> seq) (toNode: Node<'b, 'c>) =
-        EdgeType.FanIn(fromNodes |> Seq.map boxIn, boxOut toNode)
+        EdgeType.FanInBarrier(fromNodes |> Seq.map boxIn, boxOut toNode)
 
 [<AutoOpen; AbstractClass; Sealed>]
 type NodeOperations =
@@ -104,8 +104,8 @@ type workflow<'TIn, 'TFirstOut, 'TOut>(node: Node<'TIn, 'TFirstOut>) =
             workflow.AddFanOutEdge(from.Value, tos |> Seq.map _.Value) |> ignore
         | EdgeType.FanOutCond(from, tos, condition) ->
             workflow.AddFanOutEdge(from.Value, tos |> Seq.map _.Value, condition) |> ignore
-        | EdgeType.FanIn(from, ``to``) ->
-            workflow.AddFanInEdge(from |> Seq.map _.Value, ``to``.Value) |> ignore
+        | EdgeType.FanInBarrier(from, ``to``) ->
+            workflow.AddFanInBarrierEdge(from |> Seq.map _.Value, ``to``.Value) |> ignore
         | EdgeType.Switch(from, switch) ->
             this.ReduceToFanOut(from.Value, switch) |> ignore
     member inline _.Combine((), ()) = ()
@@ -117,15 +117,15 @@ type workflow<'TIn, 'TFirstOut, 'TOut>(node: Node<'TIn, 'TFirstOut>) =
         workflow.Build() |> TypedWorkflow<'TIn, 'TOut>
 
 type Workflow =
-    static member Run<'TIn, 'TOut>(workflow: TypedWorkflow<'TIn, 'TOut>, input: 'TIn, ?runId: string, ?ct: CancellationToken) =
-        InProcessExecution.RunAsync(workflow.Value, input, runId = (runId |> Option.toObj), ?cancellationToken = ct)
-    static member CheckpointRun<'TIn, 'TOut>(workflow: TypedWorkflow<'TIn, 'TOut>, input: 'TIn, checkpointManager: CheckpointManager, ?runId: string, ?ct: CancellationToken) =
-        InProcessExecution.RunAsync(workflow.Value, input, checkpointManager, runId = (runId |> Option.toObj), ?cancellationToken = ct)
-    static member Stream<'TIn, 'TOut>(workflow: TypedWorkflow<'TIn, 'TOut>, input: 'TIn, ?runId: string, ?ct: CancellationToken) =
-        InProcessExecution.StreamAsync(workflow.Value, input, runId = (runId |> Option.toObj), ?cancellationToken = ct)
-    static member CheckpointStream<'TIn, 'TOut>(workflow: TypedWorkflow<'TIn, 'TOut>, input: 'TIn, checkpointManager: CheckpointManager, ?runId: string, ?ct: CancellationToken) =
-        InProcessExecution.StreamAsync(workflow.Value, input, checkpointManager, runId = (runId |> Option.toObj), ?cancellationToken = ct)
-    static member ResumeStream<'TIn, 'TOut>(workflow: TypedWorkflow<'TIn, 'TOut>, checkpoint: CheckpointInfo, checkpointManager: CheckpointManager, ?runId: string, ?ct: CancellationToken) =
-        InProcessExecution.ResumeStreamAsync(workflow.Value, checkpoint, checkpointManager, runId = (runId |> Option.toObj), ?cancellationToken = ct)
-    static member ResumeRun<'TIn, 'TOut>(workflow: TypedWorkflow<'TIn, 'TOut>, checkpoint: CheckpointInfo, checkpointManager: CheckpointManager, ?runId: string, ?ct: CancellationToken) =
-        InProcessExecution.ResumeAsync(workflow.Value, checkpoint, checkpointManager, runId = (runId |> Option.toObj), ?cancellationToken = ct)
+    static member Run<'TIn, 'TOut>(workflow: TypedWorkflow<'TIn, 'TOut>, input: 'TIn, ?sessionId: string, ?ct: CancellationToken) =
+        InProcessExecution.RunAsync(workflow.Value, input, sessionId = (sessionId |> Option.toObj), ?cancellationToken = ct)
+    static member CheckpointRun<'TIn, 'TOut>(workflow: TypedWorkflow<'TIn, 'TOut>, input: 'TIn, checkpointManager: CheckpointManager, ?sessionId: string, ?ct: CancellationToken) =
+        InProcessExecution.RunAsync(workflow.Value, input, checkpointManager, sessionId = (sessionId |> Option.toObj), ?cancellationToken = ct)
+    static member Stream<'TIn, 'TOut>(workflow: TypedWorkflow<'TIn, 'TOut>, input: 'TIn, ?sessionId: string, ?ct: CancellationToken) =
+        InProcessExecution.RunStreamingAsync(workflow.Value, input, sessionId = (sessionId |> Option.toObj), ?cancellationToken = ct)
+    static member CheckpointStream<'TIn, 'TOut>(workflow: TypedWorkflow<'TIn, 'TOut>, input: 'TIn, checkpointManager: CheckpointManager, ?sessionId: string, ?ct: CancellationToken) =
+        InProcessExecution.RunStreamingAsync(workflow.Value, input, checkpointManager, sessionId = (sessionId |> Option.toObj), ?cancellationToken = ct)
+    static member ResumeStream<'TIn, 'TOut>(workflow: TypedWorkflow<'TIn, 'TOut>, checkpoint: CheckpointInfo, checkpointManager: CheckpointManager, ?ct: CancellationToken) =
+        InProcessExecution.ResumeStreamingAsync(workflow.Value, checkpoint, checkpointManager, ?cancellationToken = ct)
+    static member ResumeRun<'TIn, 'TOut>(workflow: TypedWorkflow<'TIn, 'TOut>, checkpoint: CheckpointInfo, checkpointManager: CheckpointManager, ?ct: CancellationToken) =
+        InProcessExecution.ResumeAsync(workflow.Value, checkpoint, checkpointManager, ?cancellationToken = ct)

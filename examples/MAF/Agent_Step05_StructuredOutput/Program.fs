@@ -59,7 +59,7 @@ module Target =
         use client = Client.ForResponsesAPI(Environment.GetEnvironmentVariable "MODEL_ID")
         let agent = client.CreateAgent(AgentOptions(
             Name = "HelpfulAssistant", Instructions = "You are a helpful assistant."))
-        let run = agent.GetThreadRun<PersonInfo>()
+        let run = agent.GetSessionRun<PersonInfo>()
         +task {
             // Non-streaming agent interaction with structured output.
             let! response = run "Please provide information about fictional character John Smith, who is a 35-year-old software engineer."
@@ -91,7 +91,7 @@ module Target =
             let updates = agent.RunStreamingAsync("Please provide information about fictional character John Smith, who is a 35-year-old software engineer.")
             
             let! responseStreaming = updates.ToAgentResponseAsync()
-            let personInfo = responseStreaming.Deserialize<PersonInfo>(JsonSerializerOptions.Web)
+            let personInfo = JsonSerializer.Deserialize<PersonInfo>(responseStreaming.Text)
 
             printfn "Assistant Output (Target Streaming):"
             printfn $"Name: {personInfo.Name}"
