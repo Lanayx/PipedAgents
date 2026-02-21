@@ -7,7 +7,6 @@ open System.ClientModel.Primitives
 open System.Linq
 open System.Text.Json
 open System.Threading.Tasks
-open System.Runtime.InteropServices
 open FSharp.Control
 open PipedAgents.MAF
 open PipedAgents.MAF.OpenAI
@@ -26,7 +25,7 @@ type ChatHistoryItem() =
     member val Key: string = null with get, set
 
     [<VectorStoreData>]
-    member val ThreadId: string = null with get, set
+    member val SessionId: string = null with get, set
 
     [<VectorStoreData>]
     member val Timestamp: Nullable<DateTimeOffset> = Nullable() with get, set
@@ -37,29 +36,33 @@ type ChatHistoryItem() =
     [<VectorStoreData>]
     member val MessageText: string = null with get, set
 
+type State = {
+    SessionDbKey: string
+}
+
 /// <summary>
-/// A sample implementation of <see cref="ChatMessageStore"/> that stores chat messages in a vector store.
+/// A sample implementation of <see cref="ChatHistoryProvider"/> that stores chat messages in a vector store.
 /// </summary>
-type VectorChatMessageStore(vectorStore: VectorStore, serializedStoreState: JsonElement) =
-    inherit ChatMessageStore()
+type VectorChatHistoryProvider(vectorStore: VectorStore,
+                               ?stateInitializer: AgentSession -> State) as this =
+    inherit ChatHistoryProvider()
 
-    let mutable threadDbKey: string =
-        if serializedStoreState.ValueKind = JsonValueKind.String then
-            serializedStoreState.Deserialize<string>()
-        else
-            null
+    let initializer = stateInitializer |> Option.defaultValue (fun _ -> { SessionDbKey = Guid.NewGuid().ToString("N") })
+    let sessionState = ProviderSessionState(initializer, this.GetType().Name)
 
-    member _.ThreadDbKey = threadDbKey
+    override _.StateKey = sessionState.StateKey
 
-    override _.InvokingAsync(context, cancellationToken) =
+    override _.ProvideChatHistoryAsync(context, cancellationToken) =
         task {
+            let state = sessionState.GetOrInitializeState(context.Session)
             let collection = vectorStore.GetCollection<string, ChatHistoryItem>("ChatHistory")
             do! collection.EnsureCollectionExistsAsync(cancellationToken)
             let! (records: ResizeArray<ChatHistoryItem>) =
                 collection
                     .GetAsync(
-                        (fun x -> x.ThreadId = threadDbKey),
-                        10, cancellationToken = cancellationToken
+                        (fun x -> x.SessionId = state.SessionDbKey), 10,
+                        FilteredRecordRetrievalOptions(OrderBy = _.Descending(_.Timestamp)),
+                        cancellationToken
                     )
                     .ToListAsync(cancellationToken)
 
@@ -68,12 +71,9 @@ type VectorChatMessageStore(vectorStore: VectorStore, serializedStoreState: Json
             return messages :> IEnumerable<ChatMessage>
         } |> ValueTask<IEnumerable<ChatMessage>>
 
-    override _.InvokedAsync(context, cancellationToken) =
+    override _.StoreChatHistoryAsync(context, cancellationToken) =
         task {
-            if context.InvokeException |> isNull |> not then return ()
-
-            if isNull threadDbKey then
-                threadDbKey <- Guid.NewGuid().ToString("N")
+            let state = sessionState.GetOrInitializeState(context.Session)
 
             let collection = vectorStore.GetCollection<string, ChatHistoryItem>("ChatHistory")
             do! collection.EnsureCollectionExistsAsync(cancellationToken)
@@ -81,8 +81,6 @@ type VectorChatMessageStore(vectorStore: VectorStore, serializedStoreState: Json
             let allNewMessages =
                 seq {
                     yield! context.RequestMessages
-                    if context.AIContextProviderMessages |> isNull |> not then
-                        yield! context.AIContextProviderMessages
                     if context.ResponseMessages |> isNull |> not then
                         yield! context.ResponseMessages
                 }
@@ -90,9 +88,9 @@ type VectorChatMessageStore(vectorStore: VectorStore, serializedStoreState: Json
             let items =
                 allNewMessages.Select(fun x ->
                     ChatHistoryItem(
-                        Key = threadDbKey + x.MessageId,
+                        Key = state.SessionDbKey + x.MessageId,
                         Timestamp = Nullable DateTimeOffset.UtcNow,
-                        ThreadId = threadDbKey,
+                        SessionId = state.SessionDbKey,
                         SerializedMessage = JsonSerializer.Serialize(x),
                         MessageText = x.Text
                     ))
@@ -100,8 +98,8 @@ type VectorChatMessageStore(vectorStore: VectorStore, serializedStoreState: Json
             do! collection.UpsertAsync(items, cancellationToken)
         } |> ValueTask
 
-    override _.Serialize([<Optional; DefaultParameterValue(null:JsonSerializerOptions)>] jsonSerializerOptions: JsonSerializerOptions) =
-        JsonSerializer.SerializeToElement(threadDbKey, jsonSerializerOptions)
+    member _.GetSessionDbKey(session: AgentSession) =
+        sessionState.GetOrInitializeState(session).SessionDbKey
 
 module Baseline =
 
@@ -126,37 +124,34 @@ module Baseline =
                                 Instructions = "You are good at telling jokes.",
                                 RawRepresentationFactory = (fun _ -> CreateResponseOptions(StoredOutputEnabled = false))
                             ),
-                        ChatMessageStoreFactory = (fun ctx ct ->
-                            // Create a new chat message store for this agent that stores the messages in a vector store.
-                            // Each thread must get its own copy of the VectorChatMessageStore, since the store
-                            // also contains the id that the thread is stored under.
-                            ValueTask<ChatMessageStore>(VectorChatMessageStore(vectorStore, ctx.SerializedState))))
+                        ChatHistoryProvider = VectorChatHistoryProvider(vectorStore)
+                    )
                 )
 
         task {
             // Start a new thread for the agent conversation.
-            let! thread = agent.GetNewThreadAsync()
+            let! session = agent.CreateSessionAsync()
 
             // Run the agent with the thread that stores conversation history in the vector store.
-            let! response1 = agent.RunAsync("Tell me a joke about a pirate.", thread)
+            let! response1 = agent.RunAsync("Tell me a joke about a pirate.", session)
             printfn $"{response1}"
 
             // Serialize the thread state, so it can be stored for later use.
-            let serializedThread = thread.Serialize()
+            let! serializedSession = agent.SerializeSessionAsync(session)
 
             printfn "\n--- Serialized thread ---\n"
-            printfn $"{JsonSerializer.Serialize(serializedThread, JsonSerializerOptions(WriteIndented = true))}"
+            printfn $"{JsonSerializer.Serialize(serializedSession, JsonSerializerOptions(WriteIndented = true))}"
 
             // Deserialize the thread state after loading from storage.
-            let! resumedThread = agent.DeserializeThreadAsync(serializedThread)
+            let! resumedSession = agent.DeserializeSessionAsync(serializedSession)
 
             // Run the agent with the thread that stores conversation history in the vector store a second time.
-            let! response2 = agent.RunAsync("Now tell the same joke in the voice of a pirate, and add some emojis to the joke.", resumedThread)
+            let! response2 = agent.RunAsync("Now tell the same joke in the voice of a pirate, and add some emojis to the joke.", resumedSession)
             printfn $"{response2}"
 
             // We can access the VectorChatMessageStore via the thread's GetService method if we need to read the key under which threads are stored.
-            let historyStore = resumedThread.GetService<VectorChatMessageStore>()
-            printfn $"\nThread is stored in vector store under key: {historyStore.ThreadDbKey}"
+            let chatHistoryProvider = resumedSession.GetService<VectorChatHistoryProvider>()
+            printfn $"\nThread is stored in vector store under key: {chatHistoryProvider.GetSessionDbKey(resumedSession)}"
         }
         |> _.GetAwaiter().GetResult()
 
@@ -171,22 +166,22 @@ module Target =
                 Name = "Joker",
                 Instructions = "You are good at telling jokes.",
                 CreateRawOptions = (fun _ -> CreateResponseOptions(StoredOutputEnabled = false)),
-                ChatMessageStoreFactory = (fun ctx ct -> ValueTask<ChatMessageStore>(VectorChatMessageStore(vectorStore, ctx.SerializedState)))
+                ChatHistoryProvider = VectorChatHistoryProvider(vectorStore)
             ))
 
         +task {
-            let! thread = agent |> Thread.New
-            let run = agent.GetThreadRun(thread)
+            let! session = agent |> Session.New
+            let run = agent.GetSessionRun(session)
             let! response1 = run "Tell me a joke about a pirate."
             printfn $"{response1}"
-            let serializedThread = Thread.ToString thread
-            printfn $"\n--- Serialized thread ---\n {serializedThread} \n"
-            let! resumedThread = Thread.FromString(serializedThread, agent)
-            let run = agent.GetThreadRun(resumedThread)
+            let! serializedSession = Session.Serialize(session, agent)
+            printfn $"\n--- Serialized thread ---\n {serializedSession} \n"
+            let! resumedSession = Session.Deserialize(serializedSession, agent)
+            let run = agent.GetSessionRun(resumedSession)
             let! response2 = run "Now tell the same joke in the voice of a pirate, and add some emojis to the joke."
             printfn $"{response2}"
-            let historyStore = thread.GetService<VectorChatMessageStore>()
-            printfn $"\nThread is stored in vector store under key: {historyStore.ThreadDbKey}"
+            let chatHistoryProvider = session.GetService<VectorChatHistoryProvider>()
+            printfn $"\nThread is stored in vector store under key: {chatHistoryProvider.GetSessionDbKey(resumedSession)}"
         }
 
 Target.run()

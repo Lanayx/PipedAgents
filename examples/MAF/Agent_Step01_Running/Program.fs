@@ -36,7 +36,7 @@ module BaseLine =
 module Target =
 
     let run() =
-        let client = Client.ForChatCompletionsAPI(Environment.GetEnvironmentVariable "MODEL_ID")
+        use client = Client.ForChatCompletionsAPI(Environment.GetEnvironmentVariable "MODEL_ID")
         let agent = client.CreateAgent(AgentOptions(
             Instructions = "You are good at telling jokes. Write jokes with all uppercase letters.",
             Name = "Joker"))
@@ -46,7 +46,7 @@ module Target =
         }
 
     let runSteaming() =
-        let client = Client.ForChatCompletionsAPI(Environment.GetEnvironmentVariable "MODEL_ID")
+        use client = Client.ForChatCompletionsAPI(Environment.GetEnvironmentVariable "MODEL_ID")
         let agent = client.CreateAgent(AgentOptions(
             Instructions = "You are good at telling jokes. Write jokes with all uppercase letters.",
             Name = "Joker"))

@@ -37,30 +37,30 @@ module Baseline =
                 )
 
         task {
-            // Start a new thread for the agent conversation.
-            let! thread = agent.GetNewThreadAsync()
+            // Start a new session for the agent conversation.
+            let! session = agent.CreateSessionAsync()
 
-            // Run the agent with a new thread.
-            let! response1 = agent.RunAsync("Tell me a joke about a pirate.", thread)
+            // Run the agent with a new session.
+            let! response1 = agent.RunAsync("Tell me a joke about a pirate.", session)
             printfn $"{response1}"
 
-            // Serialize the thread state to a JsonElement, so it can be stored for later use.
-            let serializedThread = thread.Serialize()
+            // Serialize the session state to a JsonElement, so it can be stored for later use.
+            let! serializedSession = agent.SerializeSessionAsync(session)
 
-            // Save the serialized thread to a temporary file (for demonstration purposes).
+            // Save the serialized session to a temporary file (for demonstration purposes).
             let tempFilePath = Path.GetTempFileName()
-            do! File.WriteAllTextAsync(tempFilePath, JsonSerializer.Serialize(serializedThread))
-            printfn $"Thread state saved to {tempFilePath}"
+            do! File.WriteAllTextAsync(tempFilePath, JsonSerializer.Serialize(serializedSession))
+            printfn $"Session state saved to {tempFilePath}"
 
-            // Load the serialized thread from the temporary file (for demonstration purposes).
+            // Load the serialized session from the temporary file (for demonstration purposes).
             let! reloadedContent = File.ReadAllTextAsync(tempFilePath)
-            let reloadedSerializedThread = JsonDocument.Parse(reloadedContent).RootElement
+            let reloadedSerializedSession = JsonDocument.Parse(reloadedContent).RootElement
 
-            // Deserialize the thread state after loading from storage.
-            let! resumedThread = agent.DeserializeThreadAsync(reloadedSerializedThread)
+            // Deserialize the session state after loading from storage.
+            let! resumedSession = agent.DeserializeSessionAsync(reloadedSerializedSession)
 
-            // Run the agent again with the resumed thread.
-            let! response2 = agent.RunAsync("Now tell the same joke in the voice of a pirate, and add some emojis to the joke.", resumedThread)
+            // Run the agent again with the resumed session.
+            let! response2 = agent.RunAsync("Now tell the same joke in the voice of a pirate, and add some emojis to the joke.", resumedSession)
             printfn $"{response2}"
 
             // Clean up the temporary file.
@@ -81,30 +81,30 @@ module Target =
             ))
         
         +task {
-            // Start a new thread for the agent conversation.
-            let! thread = agent.GetNewThreadAsync()
-            let run = agent.GetThreadRun(thread)
+            // Start a new session for the agent conversation.
+            let! session = agent.CreateSessionAsync()
+            let run = agent.GetSessionRun(session)
 
-            // Run the agent with a new thread.
+            // Run the agent with a new session.
             let! response1 = run "Tell me a joke about a pirate."
             printfn $"{response1}"
 
-            // Serialize the thread state to a JsonElement, so it can be stored for later use.
-            let serializedThread = Thread.ToString thread
+            // Serialize the session state to a JsonElement, so it can be stored for later use.
+            let! serializedSession = Session.Serialize(session, agent)
 
-            // Save the serialized thread to a temporary file (for demonstration purposes).
+            // Save the serialized session to a temporary file (for demonstration purposes).
             let tempFilePath = Path.GetTempFileName()
-            do! File.WriteAllTextAsync(tempFilePath, serializedThread)
-            printfn $"Thread state saved to {tempFilePath}"
+            do! File.WriteAllTextAsync(tempFilePath, serializedSession)
+            printfn $"Session state saved to {tempFilePath}"
 
-            // Load the serialized thread from the temporary file (for demonstration purposes).
+            // Load the serialized session from the temporary file (for demonstration purposes).
             let! reloadedContent = File.ReadAllTextAsync(tempFilePath)
 
-            // Deserialize the thread state after loading from storage.
-            let! resumedThread = Thread.FromString(reloadedContent, agent)
-            let run = agent.GetThreadRun(resumedThread)
+            // Deserialize the session state after loading from storage.
+            let! resumedSession = Session.Deserialize(reloadedContent, agent)
+            let run = agent.GetSessionRun(resumedSession)
 
-            // Run the agent again with the resumed thread.
+            // Run the agent again with the resumed session.
             let! response2 = run "Now tell the same joke in the voice of a pirate, and add some emojis to the joke."
             printfn $"{response2}"
             

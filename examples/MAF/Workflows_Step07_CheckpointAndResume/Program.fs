@@ -118,9 +118,9 @@ module BaseLine =
             let checkpoints = System.Collections.Generic.List<CheckpointInfo>()
 
             // Execute the workflow and save checkpoints
-            use! checkpointedRun = InProcessExecution.StreamAsync(workflow, NumberSignal.Init, checkpointManager)
+            use! checkpointedRun = InProcessExecution.RunStreamingAsync(workflow, NumberSignal.Init, checkpointManager)
             
-            do! checkpointedRun.Run.WatchStreamAsync()
+            do! checkpointedRun.WatchStreamAsync()
                 |> TaskSeq.iter (fun evt ->
                     match evt with
                     | :? ExecutorCompletedEvent as executorCompletedEvt ->
@@ -147,7 +147,7 @@ module BaseLine =
             // Note that we are restoring the state directly to the same run instance.
             do! checkpointedRun.RestoreCheckpointAsync(savedCheckpoint, CancellationToken.None)
             
-            do! checkpointedRun.Run.WatchStreamAsync()
+            do! checkpointedRun.WatchStreamAsync()
                 |> TaskSeq.iter (fun evt ->
                     match evt with
                     | :? ExecutorCompletedEvent as executorCompletedEvt ->
@@ -249,7 +249,7 @@ module Target =
         +task {
             use! stream = Workflow.CheckpointStream(mainWorkflow, Hint(Init).Wrap(), CheckpointManager.Default)
             let checkpoints = ResizeArray<CheckpointInfo>()
-            for event in stream.Run.WatchStreamAsync() do
+            for event in stream.WatchStreamAsync() do
                 match event with
                 | :? ExecutorCompletedEvent as executorCompletedEvt ->
                     Console.WriteLine($"* Executor {executorCompletedEvt.ExecutorId} completed.")
@@ -268,7 +268,7 @@ module Target =
             let savedCheckpoint = checkpoints[checkpointIndex]
             do! stream.RestoreCheckpointAsync(savedCheckpoint, CancellationToken.None)
 
-            do! stream.Run.WatchStreamAsync()
+            do! stream.WatchStreamAsync()
                 |> TaskSeq.iter (function
                     | :? ExecutorCompletedEvent as executorCompletedEvt ->
                         Console.WriteLine($"* Executor {executorCompletedEvt.ExecutorId} completed.")

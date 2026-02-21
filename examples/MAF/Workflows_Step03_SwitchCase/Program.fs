@@ -150,7 +150,7 @@ module BaseLine =
                 .Build()
 
         +task {
-            use! run = InProcessExecution.StreamAsync(workflow, ChatMessage(ChatRole.User, Emails.ambigious))
+            use! run = InProcessExecution.RunStreamingAsync(workflow, ChatMessage(ChatRole.User, Emails.ambigious))
             let! _ = run.TrySendMessageAsync(TurnToken(emitEvents = true))
             for evt in run.WatchStreamAsync() do
                 match evt with

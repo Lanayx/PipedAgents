@@ -32,13 +32,12 @@ module BaseLine =
             )
         ))
         +task{
-            let! thread = agent.GetNewThreadAsync()
-            let! joke = agent.RunAsync("Tell me a joke about a pirate.", thread)
+            let! session = agent.CreateSessionAsync()
+            let! joke = agent.RunAsync("Tell me a joke about a pirate.", session)
             joke |> string |> printfn "%s"
-            let! kidJoke = agent.RunAsync("Now tell the same joke for a kid", thread)
+            let! kidJoke = agent.RunAsync("Now tell the same joke for a kid", session)
             kidJoke |> string |> printfn "%s"
         }
-
 
 module Target =
 
@@ -49,7 +48,7 @@ module Target =
             Instructions = "You are good at telling jokes.",
             CreateRawOptions = fun _ -> CreateResponseOptions(StoredOutputEnabled = false)
         ))
-        let run = agent.GetThreadRun()
+        let run = agent.GetSessionRun()
         task {
             let! result1 = run "Tell me a joke about a pirate."
             printfn $"{result1}"
@@ -65,7 +64,7 @@ module Target =
             Instructions = "You are good at telling jokes.",
             CreateRawOptions = fun _ -> CreateResponseOptions(StoredOutputEnabled = false)
         ))
-        let run = agent.GetStreamingThreadRun()
+        let run = agent.GetStreamingSessionRun()
         +task {
             do! "Tell me a joke about a pirate." |> run |> TaskSeq.iter (printf "%O")
             printfn ""

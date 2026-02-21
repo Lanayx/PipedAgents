@@ -34,15 +34,15 @@ type Client =
                     |> nullArgCheck "ANTHROPIC_API_KEY"
                 let mutable options =
                     ClientOptions(
-                        APIKey = apiKey
+                        ApiKey = apiKey
                     )
                 let baseUrl = Environment.GetEnvironmentVariable "ANTHROPIC_BASE_URL"
                 let authToken = Environment.GetEnvironmentVariable "ANTHROPIC_AUTH_TOKEN"
                 if baseUrl |> isNull |> not then
-                    options.BaseUrl <- Uri(baseUrl)
+                    options.BaseUrl <- baseUrl
                 if authToken |> isNull |> not then
                     options.AuthToken <- authToken
                 options
             )
-        Anthropic.AnthropicClient(options).AsIChatClient(model)
+        (new Anthropic.AnthropicClient(options)).AsIChatClient(model)
             |> fun chatClient -> new MessagesChatClient(chatClient)

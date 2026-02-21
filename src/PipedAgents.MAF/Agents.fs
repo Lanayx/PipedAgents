@@ -23,10 +23,10 @@ type AgentOptions<'T>() =
         with set value = agentOptions.Name <- value
     member this.Description
         with set value = agentOptions.Description <- value
-    member this.ChatMessageStoreFactory
-        with set value = agentOptions.ChatMessageStoreFactory <- value
-    member this.AIContextProviderFactory
-        with set value = agentOptions.AIContextProviderFactory <- value
+    member this.ChatHistoryProvider
+        with set value = agentOptions.ChatHistoryProvider <- value
+    member this.AIContextProviders
+        with set value = agentOptions.AIContextProviders <- value
     member this.UseProvidedChatClientAsIs
         with set value = agentOptions.UseProvidedChatClientAsIs <- value
     member this.ConversationId
@@ -72,87 +72,87 @@ type AgentOptions<'T>() =
 
 type ThreadExtensions =
     [<Extension>]
-    static member GetThreadRun(agent: AIAgent, ?thread: AgentThread, ?options: AgentRunOptions, ?ct: CancellationToken) =
-        let threadTask =
+    static member GetSessionRun(agent: AIAgent, ?session: AgentSession, ?options: AgentRunOptions, ?ct: CancellationToken) =
+        let sessionTask =
             task {
-                match thread with
+                match session with
                 | Some t -> return t
-                | None -> return! agent.GetNewThreadAsync()
+                | None -> return! agent.CreateSessionAsync()
             }
         fun (message: string) ->
             task {
-                let! thread = threadTask
-                return! agent.RunAsync(message, thread, options = (options |> Option.toObj), ?cancellationToken = ct)
+                let! session = sessionTask
+                return! agent.RunAsync(message, session, options = (options |> Option.toObj), ?cancellationToken = ct)
             }
 
     [<Extension>]
-    static member GetThreadRun<'T>(agent: ChatClientAgent, ?thread: AgentThread, ?options: AgentRunOptions, ?ct: CancellationToken) =
-        let threadTask =
+    static member GetSessionRun<'T>(agent: AIAgent, ?session: AgentSession, ?options: AgentRunOptions, ?ct: CancellationToken) =
+        let sessionTask =
             task {
-                match thread with
+                match session with
                 | Some t -> return t
-                | None -> return! agent.GetNewThreadAsync()
+                | None -> return! agent.CreateSessionAsync()
             }
         fun (message: string) ->
             task {
-                let! thread = threadTask
-                return! agent.RunAsync<'T>(message, thread, options = (options |> Option.toObj), ?cancellationToken = ct)
+                let! session = sessionTask
+                return! agent.RunAsync<'T>(message, session, options = (options |> Option.toObj), ?cancellationToken = ct)
             }
 
     [<Extension>]
-    static member GetThreadMessageRun(agent: AIAgent, ?thread: AgentThread, ?options: AgentRunOptions, ?ct: CancellationToken) =
-        let threadTask =
+    static member GetSessionMessageRun(agent: AIAgent, ?session: AgentSession, ?options: AgentRunOptions, ?ct: CancellationToken) =
+        let sessionTask =
             task {
-                match thread with
+                match session with
                 | Some t -> return t
-                | None -> return! agent.GetNewThreadAsync()
+                | None -> return! agent.CreateSessionAsync()
             }
         fun (message: ChatMessage) ->
             task {
-                let! thread = threadTask
-                return! agent.RunAsync(message, thread, options = (options |> Option.toObj), ?cancellationToken = ct)
+                let! session = sessionTask
+                return! agent.RunAsync(message, session, options = (options |> Option.toObj), ?cancellationToken = ct)
             }
 
     [<Extension>]
-    static member GetThreadMessageRun<'T>(agent: ChatClientAgent, ?thread: AgentThread, ?options: AgentRunOptions, ?ct: CancellationToken) =
-        let threadTask =
+    static member GetSessionMessageRun<'T>(agent: AIAgent, ?session: AgentSession, ?options: AgentRunOptions, ?ct: CancellationToken) =
+        let sessionTask =
             task {
-                match thread with
+                match session with
                 | Some t -> return t
-                | None -> return! agent.GetNewThreadAsync()
+                | None -> return! agent.CreateSessionAsync()
             }
         fun (message: ChatMessage) ->
             task {
-                let! thread = threadTask
-                return! agent.RunAsync<'T>(message, thread, options = (options |> Option.toObj), ?cancellationToken = ct)
+                let! session = sessionTask
+                return! agent.RunAsync<'T>(message, session, options = (options |> Option.toObj), ?cancellationToken = ct)
             }
 
     [<Extension>]
-    static member GetStreamingThreadRun(agent: AIAgent, ?thread: AgentThread, ?options: AgentRunOptions, ?ct: CancellationToken) =
-        let threadTask =
+    static member GetStreamingSessionRun(agent: AIAgent, ?session: AgentSession, ?options: AgentRunOptions, ?ct: CancellationToken) =
+        let sessionTask =
             task {
-                match thread with
+                match session with
                 | Some t -> return t
-                | None -> return! agent.GetNewThreadAsync()
+                | None -> return! agent.CreateSessionAsync()
             }
         fun (message: string) ->
             taskSeq {
-                let! thread = threadTask
-                yield! agent.RunStreamingAsync(message, thread, options = (options |> Option.toObj), ?cancellationToken = ct)
+                let! session = sessionTask
+                yield! agent.RunStreamingAsync(message, session, options = (options |> Option.toObj), ?cancellationToken = ct)
             }
 
     [<Extension>]
-    static member GetStreamingThreadMessageRun(agent: AIAgent, ?thread: AgentThread, ?options: AgentRunOptions, ?ct: CancellationToken) =
-        let threadTask =
+    static member GetStreamingThreadMessageRun(agent: AIAgent, ?session: AgentSession, ?options: AgentRunOptions, ?ct: CancellationToken) =
+        let sessionTask =
             task {
-                match thread with
+                match session with
                 | Some t -> return t
-                | None -> return! agent.GetNewThreadAsync()
+                | None -> return! agent.CreateSessionAsync()
             }
         fun (message: ChatMessage) ->
             taskSeq {
-                let! thread = threadTask
-                yield! agent.RunStreamingAsync(message, thread, options = (options |> Option.toObj), ?cancellationToken = ct)
+                let! session = sessionTask
+                yield! agent.RunStreamingAsync(message, session, options = (options |> Option.toObj), ?cancellationToken = ct)
             }
 
 type OpenTelemetryOptions() =
@@ -167,8 +167,8 @@ type AgentExtensions =
             new OpenTelemetryAgent(agent, (sourceName |> Option.toObj), EnableSensitiveData = options.EnableSensitiveData)
     [<Extension>]
     static member AddRunMiddleware(agent: AIAgent,
-            runMiddleware: ChatMessage seq -> AgentThread -> AgentRunOptions -> AIAgent -> CancellationToken -> Task<AgentResponse>,
-            ?streamRunMiddleware: ChatMessage seq -> AgentThread -> AgentRunOptions -> AIAgent -> CancellationToken -> IAsyncEnumerable<AgentResponseUpdate>
+            runMiddleware: ChatMessage seq -> AgentSession -> AgentRunOptions -> AIAgent -> CancellationToken -> Task<AgentResponse>,
+            ?streamRunMiddleware: ChatMessage seq -> AgentSession -> AgentRunOptions -> AIAgent -> CancellationToken -> IAsyncEnumerable<AgentResponseUpdate>
             ) =
         match streamRunMiddleware with
         | Some f ->
@@ -211,23 +211,25 @@ type Tool =
         let mi = extract handler
         AIFunctionFactory.Create(mi, target= null, options = (options |> Option.toObj))
 
-type Thread =
+type Session =
     static member New(agent: ChatClientAgent) =
         task {
-            let! thread = agent.GetNewThreadAsync()
-            return thread :?> ChatClientAgentThread
+            let! session = agent.CreateSessionAsync()
+            return session :?> ChatClientAgentSession
         }
-    static member GetChatHistory(thread: ChatClientAgentThread) =
-        thread.GetService<IList<ChatMessage>>()
+    static member GetChatHistory(session: ChatClientAgentSession) =
+        session.GetService<IList<ChatMessage>>()
     [<Extension>]
-    static member ToString(thread: AgentThread,
-                           [<Optional; DefaultParameterValue(null:JsonSerializerOptions)>]options: JsonSerializerOptions) =
-        thread.Serialize(options)
-        |> string
-    static member FromString(thread: string, agent: AIAgent,
-                           [<Optional; DefaultParameterValue(null:JsonSerializerOptions)>]options: JsonSerializerOptions) =
-        let element = JsonElement.Parse(thread)
-        agent.DeserializeThreadAsync(element, options).AsTask()
+    static member Serialize(session: AgentSession, agent: AIAgent,
+                            [<Optional; DefaultParameterValue(null:JsonSerializerOptions)>]options: JsonSerializerOptions) =
+        task {
+            let! jsonElement = agent.SerializeSessionAsync(session, options)
+            return jsonElement.ToString()
+        }
+    static member Deserialize(session: string, agent: AIAgent,
+                              [<Optional; DefaultParameterValue(null:JsonSerializerOptions)>]options: JsonSerializerOptions) =
+        let element = JsonElement.Parse(session)
+        agent.DeserializeSessionAsync(element, options).AsTask()
 
 
 type Message =

@@ -118,9 +118,9 @@ module BaseLine =
             let checkpoints = System.Collections.Generic.List<CheckpointInfo>()
 
             // Execute the workflow and save checkpoints
-            use! checkpointedRun = InProcessExecution.StreamAsync(workflow, NumberSignal.Init, checkpointManager)
+            use! checkpointedRun = InProcessExecution.RunStreamingAsync(workflow, NumberSignal.Init, checkpointManager)
             
-            do! checkpointedRun.Run.WatchStreamAsync()
+            do! checkpointedRun.WatchStreamAsync()
                 |> TaskSeq.iter (fun evt ->
                     match evt with
                     | :? ExecutorCompletedEvent as executorCompletedEvt ->
@@ -145,9 +145,9 @@ module BaseLine =
             Console.WriteLine($"\n\nHydrating a new workflow instance from the {checkpointIndex + 1}th checkpoint.")
             let savedCheckpoint = checkpoints[checkpointIndex]
             
-            use! newCheckpointedRun = InProcessExecution.ResumeStreamAsync(newWorkflow, savedCheckpoint, checkpointManager, checkpointedRun.Run.RunId)
+            use! newCheckpointedRun = InProcessExecution.ResumeStreamingAsync(newWorkflow, savedCheckpoint, checkpointManager)
             
-            do! newCheckpointedRun.Run.WatchStreamAsync()
+            do! newCheckpointedRun.WatchStreamAsync()
                 |> TaskSeq.iter (fun evt ->
                     match evt with
                     | :? ExecutorCompletedEvent as executorCompletedEvt ->
@@ -247,9 +247,10 @@ module Target =
             }
 
         +task {
-            use! stream = Workflow.CheckpointStream(getWorkflow(), Hint(Init).Wrap(), CheckpointManager.Default)
+            let checkpointManager = CheckpointManager.Default
+            use! stream = Workflow.CheckpointStream(getWorkflow(), Hint(Init).Wrap(), checkpointManager)
             let checkpoints = ResizeArray<CheckpointInfo>()
-            for event in stream.Run.WatchStreamAsync() do
+            for event in stream.WatchStreamAsync() do
                 match event with
                 | :? ExecutorCompletedEvent as executorCompletedEvt ->
                     Console.WriteLine($"* Executor {executorCompletedEvt.ExecutorId} completed.")
@@ -266,9 +267,9 @@ module Target =
             let checkpointIndex = 5
             Console.WriteLine($"\n\nHydrating a new workflow instance from the {checkpointIndex + 1}th checkpoint.")
             let savedCheckpoint = checkpoints[checkpointIndex]
-            use! newStream = Workflow.ResumeStream(getWorkflow(), savedCheckpoint, CheckpointManager.Default, stream.Run.RunId)
+            use! newStream = Workflow.ResumeStream(getWorkflow(), savedCheckpoint, checkpointManager)
 
-            do! newStream.Run.WatchStreamAsync()
+            do! newStream.WatchStreamAsync()
                 |> TaskSeq.iter (function
                     | :? ExecutorCompletedEvent as executorCompletedEvt ->
                         Console.WriteLine($"* Executor {executorCompletedEvt.ExecutorId} completed.")
