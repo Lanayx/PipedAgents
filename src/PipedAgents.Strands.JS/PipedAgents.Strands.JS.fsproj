@@ -3,6 +3,7 @@
     <PropertyGroup>
         <TargetFramework>net10.0</TargetFramework>
         <FablePackageType>library</FablePackageType>
+        <GenerateDocumentationFile>true</GenerateDocumentationFile>
         <WarningsAsErrors>3239;0025</WarningsAsErrors>
         <PackageId>PipedAgents.Strands.JS</PackageId>
         <Title>PipedAgents.Strands.JS</Title>
