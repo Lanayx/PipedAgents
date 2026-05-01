@@ -3,6 +3,7 @@
     <PropertyGroup>
         <TargetFramework>net10.0</TargetFramework>
         <WarningsAsErrors>3239;0025</WarningsAsErrors>
+        <GenerateDocumentationFile>true</GenerateDocumentationFile>
         <PackageId>PipedAgents.MAF</PackageId>
         <Title>PipedAgents.MAF</Title>
         <Company>F# community</Company>
