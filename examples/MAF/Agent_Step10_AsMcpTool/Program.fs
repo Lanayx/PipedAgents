@@ -25,10 +25,11 @@ module Baseline =
             Endpoint = Uri(Environment.GetEnvironmentVariable "OPENAI_BASE_URL")
         )
         let client = OpenAI.OpenAIClient(key, options)
-        let responseClient = client.GetResponsesClient(Environment.GetEnvironmentVariable "MODEL_ID")
+        let responseClient = client.GetResponsesClient()
         let agent =
             responseClient
                 .AsAIAgent(
+                    model = Environment.GetEnvironmentVariable "MODEL_ID",
                     instructions = "You are good at telling jokes, and you always start each joke with 'Aye aye, captain!'.",
                     name = "Joker")
 

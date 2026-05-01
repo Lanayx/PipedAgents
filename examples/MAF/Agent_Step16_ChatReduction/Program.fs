@@ -28,7 +28,7 @@ module BaseLine =
             Endpoint = Uri(Environment.GetEnvironmentVariable "OPENAI_BASE_URL")
         )
         let client = OpenAI.OpenAIClient(key, options)
-        let responseClient = client.GetResponsesClient(Environment.GetEnvironmentVariable "MODEL_ID")
+        let responseClient = client.GetResponsesClient()
         let agent =
             responseClient.AsAIAgent(ChatClientAgentOptions(
                 Name = "Joker",
@@ -39,7 +39,7 @@ module BaseLine =
                 ChatHistoryProvider = InMemoryChatHistoryProvider(
                     InMemoryChatHistoryProviderOptions(ChatReducer = MessageCountingChatReducer(2))
                 )
-            ))
+            ), model = Environment.GetEnvironmentVariable "MODEL_ID")
         +task {
             let! session = agent.CreateSessionAsync()
             // Invoke the agent and output the text result.

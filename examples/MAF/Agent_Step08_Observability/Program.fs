@@ -31,14 +31,14 @@ module Baseline =
             Endpoint = Uri(Environment.GetEnvironmentVariable "OPENAI_BASE_URL")
         )
         let client = OpenAI.OpenAIClient(key, options)
-        let responseClient = client.GetResponsesClient(Environment.GetEnvironmentVariable "MODEL_ID")
+        let responseClient = client.GetResponsesClient()
 
         task {
             use _ = tracerProviderBuilder.Build()
             // Create the agent, and enable OpenTelemetry instrumentation.
             let agent =
                 responseClient
-                    .AsAIAgent(instructions = "You are good at telling jokes.", name = "Joker")
+                    .AsAIAgent(model = Environment.GetEnvironmentVariable "MODEL_ID", instructions = "You are good at telling jokes.", name = "Joker")
                     .AsBuilder()
                     .UseOpenTelemetry(sourceName = sourceName).Build()
             // Invoke the agent and output the text result.

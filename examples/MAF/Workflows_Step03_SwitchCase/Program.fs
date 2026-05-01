@@ -115,14 +115,15 @@ module BaseLine =
             Endpoint = Uri(Environment.GetEnvironmentVariable "OPENAI_BASE_URL")
         )
         let client = OpenAI.OpenAIClient(key, options)
-        let chatClient = client.GetResponsesClient(Environment.GetEnvironmentVariable "MODEL_ID")
+        let model = Environment.GetEnvironmentVariable "MODEL_ID"
+        let chatClient = client.GetResponsesClient()
 
         let spamDetectionAgent = chatClient.AsAIAgent(ChatClientAgentOptions(ChatOptions = ChatOptions(
                                     Instructions = "You are a spam detection assistant that identifies spam emails.",
-                                    ResponseFormat = ChatResponseFormat.ForJsonSchema<DetectionResult>())))
+                                    ResponseFormat = ChatResponseFormat.ForJsonSchema<DetectionResult>())), model = model)
         let emailAssistantAgent = chatClient.AsAIAgent(ChatClientAgentOptions(ChatOptions = ChatOptions(
                                     Instructions = "You are an email assistant that helps users draft responses to emails with professionalism.",
-                                    ResponseFormat = ChatResponseFormat.ForJsonSchema<EmailResponse>())))
+                                    ResponseFormat = ChatResponseFormat.ForJsonSchema<EmailResponse>())), model = model)
 
         let spamDetectionExecutor = SpamDetectionExecutor(spamDetectionAgent).BindExecutor()
         let emailAssistantExecutor = EmailAssistantExecutor(emailAssistantAgent).BindExecutor()

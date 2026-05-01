@@ -29,7 +29,7 @@ module Common =
         response.Messages
             |> Seq.collect _.Contents
             |> Seq.choose (function
-                | :? FunctionApprovalRequestContent as c -> Some c
+                | :? ToolApprovalRequestContent as c -> Some c
                 | _ -> None)
             |> Seq.toArray
 
@@ -129,7 +129,7 @@ module Baseline =
                     let responses =
                         userInputRequests
                         |> Array.map (fun functionApprovalRequest ->
-                            printfn $"The agent would like to invoke the following function, please reply Y to approve: Name {functionApprovalRequest.FunctionCall.Name}"
+                            printfn $"The agent would like to invoke the following function, please reply Y to approve: Name {(functionApprovalRequest.ToolCall :?> FunctionCallContent).Name}"
                             let approved = Console.ReadLine().Equals("Y", StringComparison.OrdinalIgnoreCase)
                             functionApprovalRequest.CreateResponse(approved) :> AIContent
                         )
@@ -172,11 +172,12 @@ module Baseline =
             Endpoint = Uri(Environment.GetEnvironmentVariable "OPENAI_BASE_URL")
         )
         let client = OpenAI.OpenAIClient(key, options)
-        let responseClient = client.GetResponsesClient(Environment.GetEnvironmentVariable "MODEL_ID")
+        let model = Environment.GetEnvironmentVariable "MODEL_ID"
+        let responseClient = client.GetResponsesClient()
 
         // Example 1 & 2 & 3
         let originalAgent =
-            let chatClient = responseClient.AsIChatClient().AsBuilder().Use(chatClientMiddleware, null).Build()
+            let chatClient = responseClient.AsIChatClient(model).AsBuilder().Use(chatClientMiddleware, null).Build()
             chatClient.AsAIAgent(
                 ChatClientAgentOptions(
                     ChatOptions = ChatOptions(
@@ -325,7 +326,7 @@ module Target =
                 let responses =
                     userInputRequests
                     |> Array.map (fun functionApprovalRequest ->
-                        printfn $"The agent would like to invoke the following function, please reply Y to approve: Name {functionApprovalRequest.FunctionCall.Name}"
+                        printfn $"The agent would like to invoke the following function, please reply Y to approve: Name {(functionApprovalRequest.ToolCall :?> FunctionCallContent).Name}"
                         let approved = Console.ReadLine() = "Y"
                         functionApprovalRequest.CreateResponse(approved) :> AIContent
                     )

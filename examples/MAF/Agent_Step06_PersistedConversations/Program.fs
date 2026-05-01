@@ -24,7 +24,7 @@ module Baseline =
         )
         let agent =
             OpenAI.OpenAIClient(key, options)
-                .GetResponsesClient(Environment.GetEnvironmentVariable "MODEL_ID")
+                .GetResponsesClient()
                 .AsAIAgent(
                     ChatClientAgentOptions(
                         Name = "Joker",
@@ -33,7 +33,8 @@ module Baseline =
                                 Instructions = "You are good at telling jokes.",
                                 RawRepresentationFactory = (fun _ -> CreateResponseOptions(StoredOutputEnabled = false))
                             )
-                    )
+                    ),
+                    model = Environment.GetEnvironmentVariable "MODEL_ID"
                 )
 
         task {

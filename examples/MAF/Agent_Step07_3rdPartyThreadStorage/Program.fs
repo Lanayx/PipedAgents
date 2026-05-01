@@ -50,8 +50,6 @@ type VectorChatHistoryProvider(vectorStore: VectorStore,
     let initializer = stateInitializer |> Option.defaultValue (fun _ -> { SessionDbKey = Guid.NewGuid().ToString("N") })
     let sessionState = ProviderSessionState(initializer, this.GetType().Name)
 
-    override _.StateKey = sessionState.StateKey
-
     override _.ProvideChatHistoryAsync(context, cancellationToken) =
         task {
             let state = sessionState.GetOrInitializeState(context.Session)
@@ -115,7 +113,7 @@ module Baseline =
         // Create the agent
         let agent =
             OpenAI.OpenAIClient(key, options)
-                .GetResponsesClient(Environment.GetEnvironmentVariable "MODEL_ID")
+                .GetResponsesClient()
                 .AsAIAgent(
                     ChatClientAgentOptions(
                         Name = "Joker",
@@ -125,7 +123,8 @@ module Baseline =
                                 RawRepresentationFactory = (fun _ -> CreateResponseOptions(StoredOutputEnabled = false))
                             ),
                         ChatHistoryProvider = VectorChatHistoryProvider(vectorStore)
-                    )
+                    ),
+                    model = Environment.GetEnvironmentVariable "MODEL_ID"
                 )
 
         task {

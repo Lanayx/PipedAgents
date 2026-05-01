@@ -16,7 +16,6 @@
 
     <ItemGroup>
         <PackageReference Include="PipedAgents.MAF" Version="0.2.0-alpha" />
-      <PackageReference Include="FSharp.Control.TaskSeq" Version="0.4.0" />
     </ItemGroup>
 
 </Project>
