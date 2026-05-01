@@ -28,7 +28,7 @@ module Baseline =
             Endpoint = Uri(Environment.GetEnvironmentVariable "OPENAI_BASE_URL")
         )
         let client = OpenAI.OpenAIClient(key, options)
-        let responseClient = client.GetResponsesClient(Environment.GetEnvironmentVariable "MODEL_ID")
+        let responseClient = client.GetResponsesClient()
         let agent =
             responseClient.AsAIAgent(
                 ChatClientAgentOptions(
@@ -38,7 +38,8 @@ module Baseline =
                             Tools = [| AIFunctionFactory.Create(Func<string,string>(getWeather)) |],
                             RawRepresentationFactory = (fun _ -> CreateResponseOptions(StoredOutputEnabled = false))
                         )
-                )
+                ),
+                model = Environment.GetEnvironmentVariable "MODEL_ID"
             )
         // Non-streaming agent interaction with function tools.
         agent.RunAsync("What is the weather like in Amsterdam?")

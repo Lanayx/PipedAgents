@@ -16,7 +16,6 @@
     </ItemGroup>
 
     <ItemGroup>
-      <PackageReference Include="FSharp.Control.TaskSeq" Version="0.4.0" />
       <PackageReference Include="Microsoft.SemanticKernel.Connectors.InMemory" Version="1.70.0-preview" />
     </ItemGroup>
 

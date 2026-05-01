@@ -57,7 +57,8 @@ type Client =
                 | baseUrl ->
                     OpenAI.OpenAIClientOptions(Endpoint = Uri(baseUrl))
             )
-        OpenAI.OpenAIClient(key, options).GetResponsesClient(model).AsIChatClient()
+        let client = OpenAI.OpenAIClient(key, options)
+        client.GetResponsesClient().AsIChatClient(model)
             |> fun chatClient -> new ResponsesChatClient(chatClient)
 
     static member ForChatCompletionsAPI(model, ?key, ?options) =

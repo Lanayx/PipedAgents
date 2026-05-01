@@ -38,10 +38,10 @@ module Baseline =
             Endpoint = Uri(Environment.GetEnvironmentVariable "OPENAI_BASE_URL")
         )
         let client = OpenAI.OpenAIClient(key, options)
-        let responseClient = client.GetResponsesClient(Environment.GetEnvironmentVariable "MODEL_ID")
+        let responseClient = client.GetResponsesClient()
         
         // Create the ChatClientAgent with the specified name and instructions.
-        let agent = responseClient.AsAIAgent(name = "HelpfulAssistant", instructions = "You are a helpful assistant.")
+        let agent = responseClient.AsAIAgent(model = Environment.GetEnvironmentVariable "MODEL_ID", name = "HelpfulAssistant", instructions = "You are a helpful assistant.")
 
         // Set PersonInfo as the type parameter of RunAsync method to specify the expected structured output from the agent and invoke the agent with some unstructured input.
         let response = +(agent.RunAsync<PersonInfo>("Please provide information about fictional character John Smith, who is a 35-year-old software engineer."))

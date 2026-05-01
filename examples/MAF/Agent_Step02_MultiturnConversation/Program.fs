@@ -23,14 +23,14 @@ module BaseLine =
             Endpoint = Uri(Environment.GetEnvironmentVariable "OPENAI_BASE_URL")
         )
         let client = OpenAI.OpenAIClient(key, options)
-        let responseClient = client.GetResponsesClient(Environment.GetEnvironmentVariable "MODEL_ID")
+        let responseClient = client.GetResponsesClient()
         let agent = responseClient.AsAIAgent(ChatClientAgentOptions(
             Name = "Joker",
             ChatOptions = ChatOptions(
                 Instructions = "You are good at telling jokes.",
                 RawRepresentationFactory = fun _ -> CreateResponseOptions(StoredOutputEnabled = false)
             )
-        ))
+        ), model = Environment.GetEnvironmentVariable "MODEL_ID")
         +task{
             let! session = agent.CreateSessionAsync()
             let! joke = agent.RunAsync("Tell me a joke about a pirate.", session)
