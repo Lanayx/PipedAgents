@@ -15,7 +15,7 @@
     </ItemGroup>
 
     <ItemGroup>
-        <PackageReference Include="PipedAgents.MAF" Version="0.2.0-alpha" />
+        <PackageReference Include="PipedAgents.MAF" Version="0.2.0-beta" />
         <PackageReference Include="OpenTelemetry.Exporter.Console" Version="1.15.0" />
         <PackageReference Include="ModelContextProtocol" Version="0.6.0-preview.1" />
         <PackageReference Include="Microsoft.Extensions.Hosting" Version="10.0.2" />

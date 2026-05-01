@@ -15,7 +15,7 @@
     </ItemGroup>
 
     <ItemGroup>
-        <PackageReference Include="PipedAgents.MAF" Version="0.2.0-alpha" />
+        <PackageReference Include="PipedAgents.MAF" Version="0.2.0-beta" />
     </ItemGroup>
 
 </Project>
